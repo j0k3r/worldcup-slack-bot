@@ -5,7 +5,7 @@ WorldCupBot will notify a Slack channel/group for every matches during the 2014 
 It uses the "unofficial" FIFA json API (the one used for their mobile apps).
 
 It will post a message :
-  - when a matche starts
+  - when a match starts
   - for every red/yellow card
   - for the half time and end time
   - and of course, for every goal
