@@ -17,9 +17,9 @@
  * @license MIT
  */
 
-/*
-** All the configuration are just below
-*/
+/**
+ * All the configuration are just below
+ */
 
 // Slack stuff
 const SLACK_TOKEN      = 'XXXXXXXXXXXXXXXXXXXXXXXXXX';
@@ -32,9 +32,9 @@ const PROXY         = 'http://myproxy:3128';
 // If a proxy authentification is needed, set PROXY_USERPWD to "user:password"
 const PROXY_USERPWD = false;
 
-/*
-** Below this line, you should modify at your own responsability
-*/
+/**
+ * Below this line, you should modify at your own risk
+ */
 
 function getUrl($url)
 {
@@ -61,7 +61,8 @@ function getUrl($url)
   curl_setopt_array($ch, $options);
 
   $response = curl_exec($ch);
-  if ($response !== false) {
+  if ($response !== false)
+  {
     curl_close($ch);
     return $response;
   }
