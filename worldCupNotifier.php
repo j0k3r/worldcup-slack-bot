@@ -17,16 +17,64 @@
  * @license MIT
  */
 
+/*
+** All the configuration are just below
+*/
+
 // Slack stuff
-const SLACK_TOKEN = 'XXXXXXXXXXXXXXXXXXXXXXXXXX';
-const SLACK_CHANNEL = 'worldcup';
-const SLACK_BOT_NAME = 'WorldCup Bot';
+const SLACK_TOKEN      = 'XXXXXXXXXXXXXXXXXXXXXXXXXX';
+const SLACK_CHANNEL    = '#worldcup';
+const SLACK_BOT_NAME   = 'WorldCup Bot';
 const SLACK_BOT_AVATAR = 'http://i.imgur.com/dZcA2y8.png';
+
+const USE_PROXY     = false;
+const PROXY         = 'http://myproxy:3128';
+// If a proxy authentification is needed, set PROXY_USERPWD to "user:password"
+const PROXY_USERPWD = false;
+
+/*
+** Below this line, you should modify at your own responsability
+*/
+
+function getUrl($url)
+{
+  if (!USE_PROXY)
+  {
+    return file_get_contents($url);
+  }
+
+  $ch = curl_init($url);
+  $options = array(
+    CURLOPT_HEADER => 0,
+    CURLOPT_TIMEOUT => 3,
+    CURLOPT_RETURNTRANSFER => 1,
+    CURLOPT_FOLLOWLOCATION => 1,
+    CURLOPT_SSL_VERIFYPEER => false,
+    CURLOPT_PROXY => PROXY,
+  );
+
+  if (PROXY_USERPWD)
+  {
+    $options[CURLOPT_PROXYUSERPWD] = PROXY_USERPWD;
+  }
+
+  curl_setopt_array($ch, $options);
+
+  $response = curl_exec($ch);
+  if ($response !== false) {
+    curl_close($ch);
+    return $response;
+  }
+
+  var_dump(curl_error($ch));
+  curl_close($ch);
+  die();
+}
 
 function postToSlack($text, $attachments_text = '')
 {
   $slackUrl = 'https://slack.com/api/chat.postMessage?token='.SLACK_TOKEN.
-    '&channel='.SLACK_CHANNEL.
+    '&channel='.urlencode(SLACK_CHANNEL).
     '&username='.urlencode(SLACK_BOT_NAME).
     '&icon_url='.SLACK_BOT_AVATAR.
     '&unfurl_links=1&parse=full&pretty=1'.
@@ -37,13 +85,13 @@ function postToSlack($text, $attachments_text = '')
     $slackUrl .= '&attachments='.urlencode('[{"text": "'.$attachments_text.'"}]');
   }
 
-  var_dump(file_get_contents($slackUrl));
+  var_dump(getUrl($slackUrl));
 }
 
 $dbFile = './worldCupDB.json';
 
 $db = json_decode(file_get_contents($dbFile), true);
-$response = json_decode(file_get_contents('http://live.mobileapp.fifa.com/api/wc/matches'), true);
+$response = json_decode(getUrl('http://live.mobileapp.fifa.com/api/wc/matches'), true);
 
 if (!isset($response['data']['group']))
 {
@@ -76,7 +124,7 @@ $nbLiveMatches = count($db['live_matches']);
 // post update on live matches
 foreach ($db['live_matches'] as $key => $liveMatch)
 {
-  $response = json_decode(file_get_contents('http://live.mobileapp.fifa.com/api/wc/match/'.$liveMatch.'/fr/blog'), true);
+  $response = json_decode(getUrl('http://live.mobileapp.fifa.com/api/wc/match/'.$liveMatch.'/fr/blog'), true);
 
   if (!isset($response['data']['posts']))
   {
