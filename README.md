@@ -12,15 +12,15 @@ It will post a message :
 
 ### Preview
 
-Here is a preview of the matche Ghana VS USA.
+Here is a preview of the Ghana vs USA match.
 
 ![worldcup-slack-bot sample](http://i.imgur.com/ucMTQrq.png)
 
 ### Requirements
 
   - PHP >= 5.3
-  - You will need a token from Slack:
-    - Jump at https://api.slack.com/#auth (you will have to login)
+  - You need a token from Slack:
+    - Jump at https://api.slack.com/#auth (you have to login)
     - and you will find your token.
 
 ### Installation
