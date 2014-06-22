@@ -167,13 +167,13 @@ foreach ($db['live_matches'] as $key => $liveMatch)
       {
         // yellow card
         case 'Y':
-          postToSlack($preText.':collision: Carton jaune !', $text);
+          postToSlack($preText.':collision: Carton jaune ! – '.$post['data']['c_ActionMinute'], $text);
           break;
 
         // red card and red card after two yellow
         case 'R':
         case 'R2Y':
-          postToSlack($preText.':collision: Carton rouge !', $text);
+          postToSlack($preText.':collision: Carton rouge ! – '.$post['data']['c_ActionMinute'], $text);
           break;
 
         // goal, own goal, penalty goal
@@ -190,7 +190,7 @@ foreach ($db['live_matches'] as $key => $liveMatch)
             $extraInfos = ' _(sur penalty)_ ';
           }
 
-          postToSlack($preText.':soccer: BUUUUUT! '.$extraInfos.' '.$db[$liveMatch]['score'], $text);
+          postToSlack($preText.':soccer: BUUUUUT! '.$extraInfos.' '.$db[$liveMatch]['score'].' – '.$post['data']['c_ActionMinute'], $text);
           break;
 
         // half time, end game
