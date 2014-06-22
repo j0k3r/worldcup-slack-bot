@@ -203,7 +203,7 @@ foreach ($db['live_matches'] as $key => $liveMatch)
           elseif ('2H' == $post['data']['c_ActionPhase'])
           {
             // end game
-            postToSlack($preText.':no_good: '.$text);
+            postToSlack($preText.':no_good: '.$text, $db[$liveMatch]['score']);
 
             // remove match
             unset($db['live_matches'][$key]);
