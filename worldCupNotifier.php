@@ -33,7 +33,7 @@ const PROXY         = 'http://myproxy:3128';
 const PROXY_USERPWD = false;
 
 // Set to the language for updates
-const LANG = 'en';
+const LANG = 'fr';
 
 $language = array(
   'fr' => array(
