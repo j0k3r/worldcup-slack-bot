@@ -32,6 +32,30 @@ const PROXY         = 'http://myproxy:3128';
 // If a proxy authentification is needed, set PROXY_USERPWD to "user:password"
 const PROXY_USERPWD = false;
 
+// Set to the language for updates
+const LANG = 'fr';
+
+$language = array(
+  'fr' => array(
+    'Le match',
+    'commence',
+    'Carton jaune',
+    'Carton rouge',
+    'contre son camp',
+    'sur penalty',
+    'BUUUUUT',
+  ),
+  'en' => array(
+    'The match between',
+    'has started',
+    'yellow card',
+    'red card',
+    'own goal',
+    'penalty',
+    'GOOOOAL'
+  )
+);
+
 /**
  * Below this line, you should modify at your own risk
  */
@@ -110,13 +134,13 @@ foreach ($response['data']['group'] as $match)
     $db[$match['n_MatchID']] = array('last_update' => microtime());
 
     // notify slack & save data
-    postToSlack(':zap: Le match '.$match['c_HomeTeam_fr'].' / '.$match['c_AwayTeam_fr'].' commence ! '.$match['c_ShareURL_en']);
+    postToSlack(':zap: '.$language[LANG][0].' '.$match['c_HomeTeam_'.LANG].' / '.$match['c_AwayTeam_'.LANG].' '.$language[LANG][1].'! '.$match['c_ShareURL_en']);
     file_put_contents($dbFile, json_encode($db));
     return;
   }
   elseif (in_array($match['n_MatchID'], $db['live_matches']))
   {
-    $db[$match['n_MatchID']]['score'] = $match['c_HomeTeam_fr'].' *'.$match['c_Score'].'* '.$match['c_AwayTeam_fr'];
+    $db[$match['n_MatchID']]['score'] = $match['c_HomeTeam_'.LANG].' *'.$match['c_Score'].'* '.$match['c_AwayTeam_'.LANG];
   }
 }
 
@@ -125,7 +149,7 @@ $nbLiveMatches = count($db['live_matches']);
 // post update on live matches
 foreach ($db['live_matches'] as $key => $liveMatch)
 {
-  $response = json_decode(getUrl('http://live.mobileapp.fifa.com/api/wc/match/'.$liveMatch.'/fr/blog'), true);
+  $response = json_decode(getUrl('http://live.mobileapp.fifa.com/api/wc/match/'.$liveMatch.'/'.LANG.'/blog'), true);
 
   if (!isset($response['data']['posts']))
   {
@@ -167,13 +191,13 @@ foreach ($db['live_matches'] as $key => $liveMatch)
       {
         // yellow card
         case 'Y':
-          postToSlack($preText.':collision: Carton jaune ! – '.$post['data']['c_ActionMinute'], $text);
+          postToSlack($preText.':collision: '.$language[LANG][2].'! – '.$post['data']['c_ActionMinute'], $text);
           break;
 
         // red card and red card after two yellow
         case 'R':
         case 'R2Y':
-          postToSlack($preText.':collision: Carton rouge ! – '.$post['data']['c_ActionMinute'], $text);
+          postToSlack($preText.':collision: '.$language[LANG][3].'! – '.$post['data']['c_ActionMinute'], $text);
           break;
 
         // goal, own goal, penalty goal
@@ -183,14 +207,14 @@ foreach ($db['live_matches'] as $key => $liveMatch)
           $extraInfos = '';
           if ('OG' == $post['data']['c_ActionShort'])
           {
-            $extraInfos = ' _(contre son camp)_ ';
+            $extraInfos = ' _('.$language[LANG][4].')_ ';
           }
           elseif ('PG' == $post['data']['c_ActionShort'])
           {
-            $extraInfos = ' _(sur penalty)_ ';
+            $extraInfos = ' _('.$language[LANG][5].')_ ';
           }
 
-          postToSlack($preText.':soccer: BUUUUUT! '.$extraInfos.' '.$db[$liveMatch]['score'].' – '.$post['data']['c_ActionMinute'], $text);
+          postToSlack($preText.':soccer: '.$language[LANG][6].'! '.$extraInfos.' '.$db[$liveMatch]['score'].' – '.$post['data']['c_ActionMinute'], $text);
           break;
 
         // half time, end game
