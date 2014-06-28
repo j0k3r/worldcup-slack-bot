@@ -118,14 +118,32 @@ $dbFile = './worldCupDB.json';
 $db = json_decode(file_get_contents($dbFile), true);
 $response = json_decode(getUrl('http://live.mobileapp.fifa.com/api/wc/matches'), true);
 
-if (!isset($response['data']['group']))
+if (!isset($response['data']['group']) || !isset($response['data']['second']))
 {
-  var_dump('data>group not good');
+  var_dump('data>group or data>second not good');
   die();
 }
 
 // find live matches
 foreach ($response['data']['group'] as $match)
+{
+  if (true === $match['b_Live'] && !in_array($match['n_MatchID'], $db['live_matches']))
+  {
+    // yay new match !
+    $db['live_matches'][] = $match['n_MatchID'];
+    $db[$match['n_MatchID']] = array('last_update' => microtime());
+
+    // notify slack & save data
+    postToSlack(':zap: '.$language[LANG][0].' '.$match['c_HomeTeam_'.LANG].' / '.$match['c_AwayTeam_'.LANG].' '.$language[LANG][1].'! '.$match['c_ShareURL_en']);
+    file_put_contents($dbFile, json_encode($db));
+    return;
+  }
+  elseif (in_array($match['n_MatchID'], $db['live_matches']))
+  {
+    $db[$match['n_MatchID']]['score'] = $match['c_HomeTeam_'.LANG].' *'.$match['c_Score'].'* '.$match['c_AwayTeam_'.LANG];
+  }
+}
+foreach ($response['data']['second'] as $match)
 {
   if (true === $match['b_Live'] && !in_array($match['n_MatchID'], $db['live_matches']))
   {
