@@ -237,20 +237,70 @@ foreach ($db['live_matches'] as $key => $liveMatch)
 
         // half time, end game
         case 'End':
-          if ('1H' == $post['data']['c_ActionPhase'])
+          switch ($post['data']['c_ActionPhase'])
           {
-            // half time
-            postToSlack($preText.':toilet: '.$text);
-          }
-          elseif ('2H' == $post['data']['c_ActionPhase'])
-          {
-            // end game
-            postToSlack($preText.':no_good: '.$text, $db[$liveMatch]['score']);
+            case '1H':
+              // half time
+              postToSlack($preText.':toilet: '.$text);
+              break;
 
-            // remove match
-            unset($db['live_matches'][$key]);
-            unset($db[$liveMatch]);
+            case '2H':
+              // end game
+              postToSlack($preText.':no_good: '.$text, $db[$liveMatch]['score']);
+              break;
+
+            case '1ET':
+              // end of first extra time
+              postToSlack($preText.':smoking: '.$text, $db[$liveMatch]['score']);
+              break;
+
+            case '2ET':
+              // end of second extra time
+              postToSlack($preText.':no_good: '.$text, $db[$liveMatch]['score']);
+              break;
+
+            case 'PSO':
+              // end of penalty shout-out
+              postToSlack($preText.':no_good: '.$text, $db[$liveMatch]['score']);
+              break;
           }
+          break;
+
+        // halftime, extra time, penalty shout-out
+        case 'Start':
+          switch ($post['data']['c_ActionPhase'])
+          {
+            case '2H':
+              // second half time
+              postToSlack($preText.':runner: '.$text);
+              break;
+
+            case '1ET':
+              // extra time starts
+              postToSlack($preText.':dizzy: '.$text);
+              break;
+
+            case '2ET':
+              // second period of extra time
+              postToSlack($preText.':runner: '.$text);
+              break;
+
+            case 'PSO':
+              // penalty shout-out
+              postToSlack($preText.':dart: '.$text);
+              break;
+          }
+          break;
+
+        // penalty shout-out
+        case 'PSG':
+          // pso goal
+          postToSlack($preText.':+1: '.$text);
+          break;
+
+        case 'PSM':
+          // pso goal
+          postToSlack($preText.':-1: '.$text);
           break;
       }
     }
