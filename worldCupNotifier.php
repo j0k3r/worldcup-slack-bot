@@ -5,9 +5,10 @@
  *
  * It uses the unofficial FIFA json API (the one used for their mobile app iOS/Android).
  * It will post a message :
- *   - when a matche starts
+ *   - when a match starts
  *   - for red/yellow card
  *   - for the half time and end time
+ *   - for every penalty
  *   - and of course, for every goal
  *
  * You will need a token from Slack.
@@ -22,10 +23,10 @@
  */
 
 // Slack stuff
-const SLACK_TOKEN      = 'XXXXXXXXXXXXXXXXXXXXXXXXXX';
+const SLACK_TOKEN      = 'XXXXXXXXXXXXXXXX';
 const SLACK_CHANNEL    = '#worldcup';
 const SLACK_BOT_NAME   = 'WorldCup Bot';
-const SLACK_BOT_AVATAR = 'http://i.imgur.com/dZcA2y8.png';
+const SLACK_BOT_AVATAR = 'https://i.imgur.com/Pd0cpqE.png';
 
 const USE_PROXY     = false;
 const PROXY         = 'http://myproxy:3128';
@@ -53,12 +54,12 @@ $language = array(
     'en-GB' => array(
         'The match between',
         'is about to start',
-        'yellow card',
-        'red card',
-        'own goal',
-        'penalty',
+        'Yellow card',
+        'Red card',
+        'Own goal',
+        'Penalty',
         'GOOOOAL',
-        'missed penalty',
+        'Missed penalty',
         'has started',
         'HALF TIME',
         'FULL TIME',
@@ -66,9 +67,9 @@ $language = array(
     )
 );
 
-/*
+/**
  * FIFA API
- * */
+ */
 
 // 2018 World Cup
 const ID_COMPETITION=17;
@@ -78,7 +79,7 @@ const ID_SEASON=254645;
 const MATCH_STATUS_FINISHED = 0;
 const MATCH_STATUS_NOT_STARTED = 1;
 const MATCH_STATUS_LIVE = 3;
-const MATCH_STATUS_PREMATCH = 12;
+const MATCH_STATUS_PREMATCH = 12; // Maybe?
 
 // Event Types
 const EVENT_GOAL = 0;
@@ -98,9 +99,10 @@ const EVENT_FOUL_PENALTY = 72;
 const PERIOD_1ST_HALF = 3;
 const PERIOD_2ND_HALF = 5;
 
+
 /**
  * Below this line, you should modify at your own risk
- */
+ **/
 
 /*
  * Get data from URL
@@ -146,10 +148,6 @@ function getUrl($url)
  */
 function postToSlack($text, $attachments_text = '')
 {
-    echo $text."\n";
-
-    /* TODO Uncomment this when testing is finished
-
     $slackUrl = 'https://slack.com/api/chat.postMessage?token='.SLACK_TOKEN.
     '&channel='.urlencode(SLACK_CHANNEL).
     '&username='.urlencode(SLACK_BOT_NAME).
@@ -157,12 +155,12 @@ function postToSlack($text, $attachments_text = '')
     '&unfurl_links=1&parse=full&pretty=1'.
     '&text='.urlencode($text);
 
-  if ($attachments_text)
-  {
-    $slackUrl .= '&attachments='.urlencode('[{"text": "'.$attachments_text.'"}]');
-  }
+    if ($attachments_text)
+    {
+        $slackUrl .= '&attachments='.urlencode('[{"text": "'.$attachments_text.'"}]');
+    }
 
-  var_dump(getUrl($slackUrl)); */
+    var_dump(getUrl($slackUrl));
 }
 
 function getEventPlayerAlias($eventPlayerId)
@@ -171,7 +169,7 @@ function getEventPlayerAlias($eventPlayerId)
     return $response["Alias"][0]["Description"];
 }
 
-/*
+/**
  * ==================
  * SCRIPT STARTS HERE
  * ==================
@@ -247,26 +245,30 @@ foreach ($db['live_matches'] as $matchId)
             $eventPlayerAlias = null;
 
             $score = $homeTeamName.' '.$event["HomeGoals"].' - '.$event["AwayGoals"].' '.$awayTeamName;
-
+            $subject = '';
+            $details = '';
+            $interestingEvent = true;
             switch ($eventType) {
                 // Timekeeping
                 case EVENT_PERIOD_START:
                     switch ($period) {
                         case PERIOD_1ST_HALF:
-                            postToSlack($matchTime.' :zap: '.$language[LOCALE][0].' '.$homeTeamName.' / '.$awayTeamName.' '.$language[LOCALE][8].'!');
+                            $subject = ':zap: '.$language[LOCALE][0].' '.$homeTeamName.' / '.$awayTeamName.' '.$language[LOCALE][8].'!';
                             break;
                         case PERIOD_2ND_HALF:
-                            postToSlack($matchTime.' :runner: '.$language[LOCALE][0].' '.$homeTeamName.' / '.$awayTeamName.' '.$language[LOCALE][11]);
+                            $subject = ':runner: '.$language[LOCALE][0].' '.$homeTeamName.' / '.$awayTeamName.' '.$language[LOCALE][11];
                             break;
                     }
                     break;
                 case EVENT_PERIOD_END:
                     switch ($period) {
                         case PERIOD_1ST_HALF:
-                            postToSlack($matchTime.' :toilet: '.$language[LOCALE][9].' '.$score);
+                            $subject = ':toilet: '.$language[LOCALE][9].' '.$score;;
+                            $details = $matchTime;
                             break;
                         case PERIOD_2ND_HALF:
-                            postToSlack($matchTime.' :stopwatch: '.$language[LOCALE][10].' '.$score);
+                            $subject = ':stopwatch: '.$language[LOCALE][10].' '.$score;;
+                            $details = $matchTime;
                             break;
                     }
                     break;
@@ -276,43 +278,47 @@ foreach ($db['live_matches'] as $matchId)
                 case EVENT_FREE_KICK_GOAL:
                 case EVENT_PENALTY_GOAL:
                     $eventPlayerAlias = getEventPlayerAlias($event["IdPlayer"]);
-                    postToSlack($matchTime.' :soccer: '.$language[LOCALE][6].' '.$eventTeam.'!!! ('.$eventPlayerAlias.
-                        ') '.$score);
+                    $subject = ':soccer: '.$language[LOCALE][6].' '.$eventTeam.'!!!';
+                    $details = $eventPlayerAlias.' ('.$matchTime.') '.$score;
                     break;
                 case EVENT_OWN_GOAL:
                     $eventPlayerAlias = getEventPlayerAlias($event["IdPlayer"]);
-                    postToSlack($matchTime.' :face_palm: '.$language[LOCALE][4].' '.$eventTeam.'!!! ('.$eventPlayerAlias.
-                        ') '.$score);
+                    $subject = ':face_palm: '.$language[LOCALE][4].' '.$eventTeam.'!!!';
+                    $details = $eventPlayerAlias.' ('.$matchTime.') '.$score;
                     break;
 
                 // Cards
                 case EVENT_YELLOW_CARD:
                     $eventPlayerAlias = getEventPlayerAlias($event["IdPlayer"]);
-                    postToSlack($matchTime.' :collision: '. $language[LOCALE][2].' '.$eventTeam.' ('.$eventPlayerAlias.')');
+                    $subject = ':collision: '. $language[LOCALE][2].' '.$eventTeam;
+                    $details = $eventPlayerAlias.' ('.$matchTime.')';
                     break;
                 case EVENT_SECOND_YELLOW_CARD_RED:
                 case EVENT_STRAIGHT_RED:
-                    $eventPlayerAlias = getEventPlayerAlias($event["IdPlayer"]);
-                    postToSlack($matchTime.' :collision: '.$language[LOCALE][3].' '.$eventTeam.' ('.$eventPlayerAlias.')');
+                $eventPlayerAlias = getEventPlayerAlias($event["IdPlayer"]);
+                $subject = ':collision: '. $language[LOCALE][3].' '.$eventTeam;
+                $details = $eventPlayerAlias.' ('.$matchTime.')';
                     break;
 
                 // Penalties
                 case EVENT_FOUL_PENALTY:
-                    postToSlack($matchTime.' :exclamation: ' . $language[LOCALE][5].' ' .$eventOtherTeam.'!!!');
+                    $subject = ':exclamation: '.$language[LOCALE][5].' ' .$eventOtherTeam.'!!!';
                     break;
                 case EVENT_PENALTY_MISSED:
-                    $eventPlayerAlias = getEventPlayerAlias($event["IdPlayer"]);
-                    postToSlack($matchTime.' :no_good: ' . $language[LOCALE][7].' ' .$eventTeam.'!!! ('.
-                        $eventPlayerAlias.') '.$score);
-                    break;
                 case EVENT_PENALTY_SAVED:
                     $eventPlayerAlias = getEventPlayerAlias($event["IdPlayer"]);
-                    postToSlack($matchTime.' :no_good: ' . $language[LOCALE][7].' ' .$eventTeam.'!!! ('.
-                        $eventPlayerAlias.') '.$score);
+                    $subject = ':no_good: '.$language[LOCALE][7].' '.$eventTeam.'!!!';
+                    $details =  $eventPlayerAlias.' ('.$matchTime.')';
                     break;
+                default:
+                    $interestingEvent = false;
+                    continue;
             }
 
-            $db[$matchId]['last_update'] = microtime();
+            if ($interestingEvent) {
+                postToSlack($subject, $details);
+                $db[$matchId]['last_update'] = microtime();
+            }
         }
     }
 }
