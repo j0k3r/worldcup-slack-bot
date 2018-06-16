@@ -38,47 +38,65 @@ const LOCALE = 'en-GB'; // fr-FR, en-GB
 $language = array(
     'fr-FR' => array(
         'Le match',
-        'commence',
-        'Carton jaune',
-        'Carton rouge',
+        'est sur le point de commencer',
+        'carton jaune',
+        'carton rouge',
         'contre son camp',
         'sur penalty',
         'BUUUUUT',
         'penalty manquée',
+        'commence',
+        'mi-temps',
+        'à plein temps',
+        'a repris',
     ),
     'en-GB' => array(
         'The match between',
-        'has started',
+        'is about to start',
         'yellow card',
         'red card',
         'own goal',
         'penalty',
         'GOOOOAL',
         'missed penalty',
+        'has started',
+        'HALF TIME',
+        'FULL TIME',
+        'has resumed',
     )
 );
 
-// FIFA 2018 World Cup
+/*
+ * FIFA API
+ * */
 
+// 2018 World Cup
 const ID_COMPETITION=17;
 const ID_SEASON=254645;
 
-// FIFA API Match Statuses
+// Match Statuses
 const MATCH_STATUS_FINISHED = 0;
 const MATCH_STATUS_NOT_STARTED = 1;
 const MATCH_STATUS_LIVE = 3;
 const MATCH_STATUS_PREMATCH = 12;
 
-// FIFA API Event Types
+// Event Types
 const EVENT_GOAL = 0;
 const EVENT_YELLOW_CARD = 2;
 const EVENT_SECOND_YELLOW_CARD_RED = 3; // Maybe?
 const EVENT_STRAIGHT_RED = 4; // Maybe?
+const EVENT_PERIOD_START = 7;
+const EVENT_PERIOD_END = 8;
 const EVENT_OWN_GOAL = 34;
 const EVENT_FREE_KICK_GOAL = 39;
 const EVENT_PENALTY_GOAL = 41;
-const EVENT_MISSED_PENALTY = 65;
-const EVENT_PENALTY_FOUL = 72;
+const EVENT_PENALTY_SAVED = 60;
+const EVENT_PENALTY_MISSED = 65;
+const EVENT_FOUL_PENALTY = 72;
+
+// Periods
+const PERIOD_1ST_HALF = 3;
+const PERIOD_2ND_HALF = 5;
 
 /**
  * Below this line, you should modify at your own risk
@@ -169,7 +187,7 @@ $response = json_decode(getUrl(
     '&count=500&language='.LOCALE), true);
 $matches = $response["Results"];
 
-// Find live matches (status 3 = in progress) and update score
+// Find live matches and update score
 foreach ($matches as $match)
 {
     if (($match['MatchStatus'] == MATCH_STATUS_LIVE) && !in_array($match["IdMatch"], $db['live_matches']))
@@ -178,13 +196,19 @@ foreach ($matches as $match)
         $db['live_matches'][] = $match["IdMatch"];
         $db[$match["IdMatch"]] = array(
             'stage_id' => $match["IdStage"],
-            'teams' => [$match["Home"]["IdTeam"] => $match["Home"]["TeamName"][0]["Description"],
-                $match["Away"]["IdTeam"] => $match["Away"]["TeamName"][0]["Description"]],
+            'teamsById' => [
+                $match["Home"]["IdTeam"] => $match["Home"]["TeamName"][0]["Description"],
+                $match["Away"]["IdTeam"] => $match["Away"]["TeamName"][0]["Description"]
+            ],
+            'teamsByHomeAway' => [
+                "Home" => $match["Home"]["TeamName"][0]["Description"],
+                "Away" => $match["Away"]["TeamName"][0]["Description"]
+            ],
             'last_update' => microtime()
         );
 
         // notify slack & save data
-        postToSlack(':zap: '.$language[LOCALE][0].' '.$match["Home"]["TeamName"][0]["Description"].' / '.$match["Away"]["TeamName"][0]["Description"].' '.$language[LOCALE][1].'! ');
+        postToSlack($language[LOCALE][0].' '.$match["Home"]["TeamName"][0]["Description"].' / '.$match["Away"]["TeamName"][0]["Description"].' '.$language[LOCALE][1].'! ');
     }
 
     if (in_array($match["IdMatch"], $db['live_matches']))
@@ -199,6 +223,8 @@ foreach ($matches as $match)
 // Post update on live matches (events since last updated time)
 foreach ($db['live_matches'] as $matchId)
 {
+    $homeTeamName = $db[$matchId]['teamsByHomeAway']["Home"];
+    $awayTeamName = $db[$matchId]['teamsByHomeAway']["Away"];
     $lastUpdateSeconds = explode(" ", $db[$matchId]['last_update'])[1];
 
     // Retrieve match events
@@ -208,29 +234,58 @@ foreach ($db['live_matches'] as $matchId)
     foreach ($events as $event)
     {
         $eventType = $event["Type"];
+        $period = $event["Period"];
         $eventTimeSeconds = strtotime($event["Timestamp"]);
         if ($eventTimeSeconds > $lastUpdateSeconds)
         {
             $matchTime = $event["MatchMinute"];
-            $eventTeams = $db[$matchId]['teams'];
-            $eventTeam = $eventTeams[$event["IdTeam"]];
-            unset($eventTeams[$event["IdTeam"]]);
-            $eventOtherTeam = reset($eventTeams);
+
+            $teamsById = $db[$matchId]['teamsById'];
+            $eventTeam = $teamsById[$event["IdTeam"]];
+            unset($teamsById[$event["IdTeam"]]);
+            $eventOtherTeam = reset($teamsById);
             $eventPlayerAlias = null;
 
+            $score = $homeTeamName.' '.$event["HomeGoals"].' - '.$event["AwayGoals"].' '.$awayTeamName;
+
             switch ($eventType) {
+                // Timekeeping
+                case EVENT_PERIOD_START:
+                    switch ($period) {
+                        case PERIOD_1ST_HALF:
+                            postToSlack($matchTime.' :zap: '.$language[LOCALE][0].' '.$homeTeamName.' / '.$awayTeamName.' '.$language[LOCALE][8].'!');
+                            break;
+                        case PERIOD_2ND_HALF:
+                            postToSlack($matchTime.' :runner: '.$language[LOCALE][0].' '.$homeTeamName.' / '.$awayTeamName.' '.$language[LOCALE][11]);
+                            break;
+                    }
+                    break;
+                case EVENT_PERIOD_END:
+                    switch ($period) {
+                        case PERIOD_1ST_HALF:
+                            postToSlack($matchTime.' :toilet: '.$language[LOCALE][9].' '.$score);
+                            break;
+                        case PERIOD_2ND_HALF:
+                            postToSlack($matchTime.' :stopwatch: '.$language[LOCALE][10].' '.$score);
+                            break;
+                    }
+                    break;
+
+                // Goals
                 case EVENT_GOAL:
                 case EVENT_FREE_KICK_GOAL:
                 case EVENT_PENALTY_GOAL:
                     $eventPlayerAlias = getEventPlayerAlias($event["IdPlayer"]);
                     postToSlack($matchTime.' :soccer: '.$language[LOCALE][6].' '.$eventTeam.'!!! ('.$eventPlayerAlias.
-                        ') '.$db[$matchId]['score']);
+                        ') '.$score);
                     break;
                 case EVENT_OWN_GOAL:
                     $eventPlayerAlias = getEventPlayerAlias($event["IdPlayer"]);
-                    postToSlack($matchTime.' :soccer: '.$language[LOCALE][4].' '.$eventTeam.'!!! ('.$eventPlayerAlias.
-                        ') '.$db[$matchId]['score']);
+                    postToSlack($matchTime.' :face_palm: '.$language[LOCALE][4].' '.$eventTeam.'!!! ('.$eventPlayerAlias.
+                        ') '.$score);
                     break;
+
+                // Cards
                 case EVENT_YELLOW_CARD:
                     $eventPlayerAlias = getEventPlayerAlias($event["IdPlayer"]);
                     postToSlack($matchTime.' :collision: '. $language[LOCALE][2].' '.$eventTeam.' ('.$eventPlayerAlias.')');
@@ -240,13 +295,20 @@ foreach ($db['live_matches'] as $matchId)
                     $eventPlayerAlias = getEventPlayerAlias($event["IdPlayer"]);
                     postToSlack($matchTime.' :collision: '.$language[LOCALE][3].' '.$eventTeam.' ('.$eventPlayerAlias.')');
                     break;
-                case EVENT_PENALTY_FOUL:
-                    postToSlack($matchTime.' :collision: ' . $language[LOCALE][5].' ' .$eventOtherTeam.'!!!');
+
+                // Penalties
+                case EVENT_FOUL_PENALTY:
+                    postToSlack($matchTime.' :exclamation: ' . $language[LOCALE][5].' ' .$eventOtherTeam.'!!!');
                     break;
-                case EVENT_MISSED_PENALTY:
+                case EVENT_PENALTY_MISSED:
                     $eventPlayerAlias = getEventPlayerAlias($event["IdPlayer"]);
                     postToSlack($matchTime.' :no_good: ' . $language[LOCALE][7].' ' .$eventTeam.'!!! ('.
-                        $eventPlayerAlias.') '.$db[$matchId]['score']);
+                        $eventPlayerAlias.') '.$score);
+                    break;
+                case EVENT_PENALTY_SAVED:
+                    $eventPlayerAlias = getEventPlayerAlias($event["IdPlayer"]);
+                    postToSlack($matchTime.' :no_good: ' . $language[LOCALE][7].' ' .$eventTeam.'!!! ('.
+                        $eventPlayerAlias.') '.$score);
                     break;
             }
 
