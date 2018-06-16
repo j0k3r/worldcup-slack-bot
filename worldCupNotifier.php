@@ -222,9 +222,13 @@ foreach ($db['live_matches'] as $matchId)
                 case EVENT_GOAL:
                 case EVENT_FREE_KICK_GOAL:
                 case EVENT_PENALTY_GOAL:
-                case EVENT_OWN_GOAL:
                     $eventPlayerAlias = getEventPlayerAlias($event["IdPlayer"]);
                     postToSlack($matchTime.' :soccer: '.$language[LOCALE][6].' '.$eventTeam.'!!! ('.$eventPlayerAlias.
+                        ') '.$db[$matchId]['score']);
+                    break;
+                case EVENT_OWN_GOAL:
+                    $eventPlayerAlias = getEventPlayerAlias($event["IdPlayer"]);
+                    postToSlack($matchTime.' :soccer: '.$language[LOCALE][4].' '.$eventTeam.'!!! ('.$eventPlayerAlias.
                         ') '.$db[$matchId]['score']);
                     break;
                 case EVENT_YELLOW_CARD:
