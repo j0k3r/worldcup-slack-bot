@@ -75,6 +75,7 @@ const EVENT_YELLOW_CARD = 2;
 const EVENT_SECOND_YELLOW_CARD_RED = 3; // Maybe?
 const EVENT_STRAIGHT_RED = 4; // Maybe?
 const EVENT_OWN_GOAL = 34;
+const EVENT_FREE_KICK_GOAL = 39;
 const EVENT_PENALTY_GOAL = 41;
 const EVENT_MISSED_PENALTY = 65;
 const EVENT_PENALTY_FOUL = 72;
@@ -127,7 +128,7 @@ function getUrl($url)
  */
 function postToSlack($text, $attachments_text = '')
 {
-    var_dump($text);
+    echo $text."\n";
 
     /* TODO Uncomment this when testing is finished
 
@@ -171,7 +172,7 @@ $matches = $response["Results"];
 // Find live matches (status 3 = in progress) and update score
 foreach ($matches as $match)
 {
-    if (($match['MatchStatus'] != MATCH_STATUS_NOT_STARTED) && !in_array($match["IdMatch"], $db['live_matches']))
+    if (($match['MatchStatus'] == MATCH_STATUS_LIVE) && !in_array($match["IdMatch"], $db['live_matches']))
     {
         // yay new match !
         $db['live_matches'][] = $match["IdMatch"];
@@ -219,6 +220,7 @@ foreach ($db['live_matches'] as $matchId)
 
             switch ($eventType) {
                 case EVENT_GOAL:
+                case EVENT_FREE_KICK_GOAL:
                 case EVENT_PENALTY_GOAL:
                 case EVENT_OWN_GOAL:
                     $eventPlayerAlias = getEventPlayerAlias($event["IdPlayer"]);
