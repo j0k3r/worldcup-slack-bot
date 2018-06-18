@@ -5,9 +5,10 @@
  *
  * It uses the unofficial FIFA json API (the one used for their mobile app iOS/Android).
  * It will post a message :
- *   - when a matche starts
+ *   - when a match starts
  *   - for red/yellow card
  *   - for the half time and end time
+ *   - for every penalty
  *   - and of course, for every goal
  *
  * You will need a token from Slack.
@@ -22,10 +23,10 @@
  */
 
 // Slack stuff
-const SLACK_TOKEN      = 'XXXXXXXXXXXXXXXXXXXXXXXXXX';
+const SLACK_TOKEN      = 'XXXXXXXXXXXXXXXX';
 const SLACK_CHANNEL    = '#worldcup';
 const SLACK_BOT_NAME   = 'WorldCup Bot';
-const SLACK_BOT_AVATAR = 'http://i.imgur.com/dZcA2y8.png';
+const SLACK_BOT_AVATAR = 'https://i.imgur.com/Pd0cpqE.png';
 
 const USE_PROXY     = false;
 const PROXY         = 'http://myproxy:3128';
@@ -33,283 +34,296 @@ const PROXY         = 'http://myproxy:3128';
 const PROXY_USERPWD = false;
 
 // Set to the language for updates
-const LANG = 'fr';
+const LOCALE = 'en-GB'; // fr-FR, en-GB
 
 $language = array(
-  'fr' => array(
-    'Le match',
-    'commence',
-    'Carton jaune',
-    'Carton rouge',
-    'contre son camp',
-    'sur penalty',
-    'BUUUUUT',
-  ),
-  'en' => array(
-    'The match between',
-    'has started',
-    'yellow card',
-    'red card',
-    'own goal',
-    'penalty',
-    'GOOOOAL'
-  )
+    'fr-FR' => array(
+        'Le match',
+        'est sur le point de commencer',
+        'carton jaune',
+        'carton rouge',
+        'contre son camp',
+        'sur penalty',
+        'BUUUUUT',
+        'penalty manquée',
+        'commence',
+        'mi-temps',
+        'à plein temps',
+        'a repris',
+    ),
+    'en-GB' => array(
+        'The match between',
+        'is about to start',
+        'Yellow card',
+        'Red card',
+        'Own goal',
+        'Penalty',
+        'GOOOOAL',
+        'Missed penalty',
+        'has started',
+        'HALF TIME',
+        'FULL TIME',
+        'has resumed',
+    )
 );
 
 /**
- * Below this line, you should modify at your own risk
+ * FIFA API
  */
 
+// 2018 World Cup
+const ID_COMPETITION=17;
+const ID_SEASON=254645;
+
+// Match Statuses
+const MATCH_STATUS_FINISHED = 0;
+const MATCH_STATUS_NOT_STARTED = 1;
+const MATCH_STATUS_LIVE = 3;
+const MATCH_STATUS_PREMATCH = 12; // Maybe?
+
+// Event Types
+const EVENT_GOAL = 0;
+const EVENT_YELLOW_CARD = 2;
+const EVENT_SECOND_YELLOW_CARD_RED = 3; // Maybe?
+const EVENT_STRAIGHT_RED = 4; // Maybe?
+const EVENT_PERIOD_START = 7;
+const EVENT_PERIOD_END = 8;
+const EVENT_OWN_GOAL = 34;
+const EVENT_FREE_KICK_GOAL = 39;
+const EVENT_PENALTY_GOAL = 41;
+const EVENT_PENALTY_SAVED = 60;
+const EVENT_PENALTY_MISSED = 65;
+const EVENT_FOUL_PENALTY = 72;
+
+// Periods
+const PERIOD_1ST_HALF = 3;
+const PERIOD_2ND_HALF = 5;
+
+
+/**
+ * Below this line, you should modify at your own risk
+ **/
+
+/*
+ * Get data from URL
+ */
 function getUrl($url)
 {
-  if (!USE_PROXY)
-  {
-    return file_get_contents($url);
-  }
+    if (!USE_PROXY)
+    {
+        return file_get_contents($url);
+    }
 
-  $ch = curl_init($url);
-  $options = array(
-    CURLOPT_HEADER => 0,
-    CURLOPT_TIMEOUT => 3,
-    CURLOPT_RETURNTRANSFER => 1,
-    CURLOPT_FOLLOWLOCATION => 1,
-    CURLOPT_SSL_VERIFYPEER => false,
-    CURLOPT_PROXY => PROXY,
-  );
+    $ch = curl_init($url);
+    $options = array(
+        CURLOPT_HEADER => 0,
+        CURLOPT_TIMEOUT => 3,
+        CURLOPT_RETURNTRANSFER => 1,
+        CURLOPT_FOLLOWLOCATION => 1,
+        CURLOPT_SSL_VERIFYPEER => false,
+        CURLOPT_PROXY => PROXY,
+    );
 
-  if (PROXY_USERPWD)
-  {
-    $options[CURLOPT_PROXYUSERPWD] = PROXY_USERPWD;
-  }
+    if (PROXY_USERPWD)
+    {
+        $options[CURLOPT_PROXYUSERPWD] = PROXY_USERPWD;
+    }
 
-  curl_setopt_array($ch, $options);
+    curl_setopt_array($ch, $options);
 
-  $response = curl_exec($ch);
-  if ($response !== false)
-  {
+    $response = curl_exec($ch);
+    if ($response !== false)
+    {
+        curl_close($ch);
+        return $response;
+    }
+
+    var_dump(curl_error($ch));
     curl_close($ch);
-    return $response;
-  }
-
-  var_dump(curl_error($ch));
-  curl_close($ch);
-  die();
+    die();
 }
 
+/*
+ * Post text and attachments to Slack
+ */
 function postToSlack($text, $attachments_text = '')
 {
-  $slackUrl = 'https://slack.com/api/chat.postMessage?token='.SLACK_TOKEN.
+    $slackUrl = 'https://slack.com/api/chat.postMessage?token='.SLACK_TOKEN.
     '&channel='.urlencode(SLACK_CHANNEL).
     '&username='.urlencode(SLACK_BOT_NAME).
     '&icon_url='.SLACK_BOT_AVATAR.
     '&unfurl_links=1&parse=full&pretty=1'.
     '&text='.urlencode($text);
 
-  if ($attachments_text)
-  {
-    $slackUrl .= '&attachments='.urlencode('[{"text": "'.$attachments_text.'"}]');
-  }
-
-  var_dump(getUrl($slackUrl));
-}
-
-$dbFile = './worldCupDB.json';
-
-$db = json_decode(file_get_contents($dbFile), true);
-$response = json_decode(getUrl('http://live.mobileapp.fifa.com/api/wc/matches'), true);
-
-if (!isset($response['data']['group']) || !isset($response['data']['second']))
-{
-  var_dump('data>group or data>second not good');
-  die();
-}
-
-// find live matches
-foreach ($response['data']['group'] as $match)
-{
-  if (true === $match['b_Live'] && !in_array($match['n_MatchID'], $db['live_matches']))
-  {
-    // yay new match !
-    $db['live_matches'][] = $match['n_MatchID'];
-    $db[$match['n_MatchID']] = array('last_update' => microtime());
-
-    // notify slack & save data
-    postToSlack(':zap: '.$language[LANG][0].' '.$match['c_HomeTeam_'.LANG].' / '.$match['c_AwayTeam_'.LANG].' '.$language[LANG][1].'! '.$match['c_ShareURL_en']);
-    file_put_contents($dbFile, json_encode($db));
-    return;
-  }
-  elseif (in_array($match['n_MatchID'], $db['live_matches']))
-  {
-    $db[$match['n_MatchID']]['score'] = $match['c_HomeTeam_'.LANG].' *'.$match['c_Score'].'* '.$match['c_AwayTeam_'.LANG];
-  }
-}
-foreach ($response['data']['second'] as $match)
-{
-  if (true === $match['b_Live'] && !in_array($match['n_MatchID'], $db['live_matches']))
-  {
-    // yay new match !
-    $db['live_matches'][] = $match['n_MatchID'];
-    $db[$match['n_MatchID']] = array('last_update' => microtime());
-
-    // notify slack & save data
-    postToSlack(':zap: '.$language[LANG][0].' '.$match['c_HomeTeam_'.LANG].' / '.$match['c_AwayTeam_'.LANG].' '.$language[LANG][1].'! '.$match['c_ShareURL_en']);
-    file_put_contents($dbFile, json_encode($db));
-    return;
-  }
-  elseif (in_array($match['n_MatchID'], $db['live_matches']))
-  {
-    $db[$match['n_MatchID']]['score'] = $match['c_HomeTeam_'.LANG].' *'.$match['c_Score'].'* '.$match['c_AwayTeam_'.LANG];
-  }
-}
-
-$nbLiveMatches = count($db['live_matches']);
-
-// post update on live matches
-foreach ($db['live_matches'] as $key => $liveMatch)
-{
-  $response = json_decode(getUrl('http://live.mobileapp.fifa.com/api/wc/match/'.$liveMatch.'/'.LANG.'/blog'), true);
-
-  if (!isset($response['data']['posts']))
-  {
-    var_dump('data>posts not good');
-    continue;
-  }
-
-  // match isn't live
-  if (false === $response['data']['b_Live'])
-  {
-    unset($db['live_matches'][$key]);
-    unset($db[$liveMatch]);
-    continue;
-  }
-
-  $posts = $response['data']['posts'];
-
-  // extract match teams
-  $currentMatch = substr($response['data']['c_BlogName'], strlen('FWC 2014 - '), strpos($response['data']['c_BlogName'], ' [idmatch:')-strlen(' [idmatch:')-1);
-
-  // sort posts by "date"
-  krsort($posts);
-
-  foreach ($posts as $post)
-  {
-    // in case of something new happens
-    if (isset($post['data']['c_ActionShort']) && 'Event' == $post['c_Type'] && $post['d_Date'] > $db[$liveMatch]['last_update'])
+    if ($attachments_text)
     {
-      $text = $post['data']['c_Text'];
-
-      // handle multiple live match
-      $preText = '';
-      if ($nbLiveMatches > 1)
-      {
-        $preText = '_'.$currentMatch.'_ ';
-      }
-
-      switch ($post['data']['c_ActionShort'])
-      {
-        // yellow card
-        case 'Y':
-          postToSlack($preText.':collision: '.$language[LANG][2].'! – '.$post['data']['c_ActionMinute'], $text);
-          break;
-
-        // red card and red card after two yellow
-        case 'R':
-        case 'R2Y':
-          postToSlack($preText.':collision: '.$language[LANG][3].'! – '.$post['data']['c_ActionMinute'], $text);
-          break;
-
-        // goal, own goal, penalty goal
-        case 'G':
-        case 'OG':
-        case 'PG':
-          $extraInfos = '';
-          if ('OG' == $post['data']['c_ActionShort'])
-          {
-            $extraInfos = ' _('.$language[LANG][4].')_ ';
-          }
-          elseif ('PG' == $post['data']['c_ActionShort'])
-          {
-            $extraInfos = ' _('.$language[LANG][5].')_ ';
-          }
-
-          postToSlack($preText.':soccer: '.$language[LANG][6].'! '.$extraInfos.' '.$db[$liveMatch]['score'].' – '.$post['data']['c_ActionMinute'], $text);
-          break;
-
-        // half time, end game
-        case 'End':
-          switch ($post['data']['c_ActionPhase'])
-          {
-            case '1H':
-              // half time
-              postToSlack($preText.':toilet: '.$text);
-              break;
-
-            case '2H':
-              // end game
-              postToSlack($preText.':no_good: '.$text, $db[$liveMatch]['score']);
-              break;
-
-            case '1ET':
-              // end of first extra time
-              postToSlack($preText.':smoking: '.$text, $db[$liveMatch]['score']);
-              break;
-
-            case '2ET':
-              // end of second extra time
-              postToSlack($preText.':no_good: '.$text, $db[$liveMatch]['score']);
-              break;
-
-            case 'PSO':
-              // end of penalty shout-out
-              postToSlack($preText.':no_good: '.$text, $db[$liveMatch]['score']);
-              break;
-          }
-          break;
-
-        // halftime, extra time, penalty shout-out
-        case 'Start':
-          switch ($post['data']['c_ActionPhase'])
-          {
-            case '2H':
-              // second half time
-              postToSlack($preText.':runner: '.$text);
-              break;
-
-            case '1ET':
-              // extra time starts
-              postToSlack($preText.':dizzy: '.$text);
-              break;
-
-            case '2ET':
-              // second period of extra time
-              postToSlack($preText.':runner: '.$text);
-              break;
-
-            case 'PSO':
-              // penalty shout-out
-              postToSlack($preText.':dart: '.$text);
-              break;
-          }
-          break;
-
-        // penalty shout-out
-        case 'PSG':
-          // pso goal
-          postToSlack($preText.':+1: '.$text);
-          break;
-
-        case 'PSM':
-          // pso goal
-          postToSlack($preText.':-1: '.$text);
-          break;
-      }
+        $slackUrl .= '&attachments='.urlencode('[{"text": "'.$attachments_text.'"}]');
     }
-  }
 
-  if (isset($db[$liveMatch]))
-  {
-    $db[$liveMatch]['last_update'] = $post['d_Date'];
-  }
+    var_dump(getUrl($slackUrl));
 }
 
+function getEventPlayerAlias($eventPlayerId)
+{
+    $response = json_decode(getUrl('https://api.fifa.com/api/v1/players/'.$eventPlayerId), true);
+    return $response["Alias"][0]["Description"];
+}
+
+/**
+ * ==================
+ * SCRIPT STARTS HERE
+ * ==================
+ */
+
+date_default_timezone_set("Zulu");
+$dbFile = './worldCupDB.json';
+$db = json_decode(file_get_contents($dbFile), true);
+
+// Retrieve all matches
+$response = json_decode(getUrl(
+    'https://api.fifa.com/api/v1/calendar/matches?idCompetition='.ID_COMPETITION.'&idSeason='.ID_SEASON.
+    '&count=500&language='.LOCALE), true);
+$matches = $response["Results"];
+
+// Find live matches and update score
+foreach ($matches as $match)
+{
+    if (($match['MatchStatus'] == MATCH_STATUS_LIVE) && !in_array($match["IdMatch"], $db['live_matches']))
+    {
+        // yay new match !
+        $db['live_matches'][] = $match["IdMatch"];
+        $db[$match["IdMatch"]] = array(
+            'stage_id' => $match["IdStage"],
+            'teamsById' => [
+                $match["Home"]["IdTeam"] => $match["Home"]["TeamName"][0]["Description"],
+                $match["Away"]["IdTeam"] => $match["Away"]["TeamName"][0]["Description"]
+            ],
+            'teamsByHomeAway' => [
+                "Home" => $match["Home"]["TeamName"][0]["Description"],
+                "Away" => $match["Away"]["TeamName"][0]["Description"]
+            ],
+            'last_update' => microtime()
+        );
+
+        // notify slack & save data
+        postToSlack($language[LOCALE][0].' '.$match["Home"]["TeamName"][0]["Description"].' / '.$match["Away"]["TeamName"][0]["Description"].' '.$language[LOCALE][1].'! ');
+    }
+
+    if (in_array($match["IdMatch"], $db['live_matches']))
+    {
+        // update score
+        $db[$match["IdMatch"]]['score'] = $match["Home"]["TeamName"][0]["Description"].' '.$match["Home"]["Score"].' - '.$match["Away"]["Score"].' '.$match["Away"]["TeamName"][0]["Description"];
+    }
+
+    file_put_contents($dbFile, json_encode($db)); // Save immediately, to avoid loops
+}
+
+// Post update on live matches (events since last updated time)
+foreach ($db['live_matches'] as $matchId)
+{
+    $homeTeamName = $db[$matchId]['teamsByHomeAway']["Home"];
+    $awayTeamName = $db[$matchId]['teamsByHomeAway']["Away"];
+    $lastUpdateSeconds = explode(" ", $db[$matchId]['last_update'])[1];
+
+    // Retrieve match events
+    $response = json_decode(getUrl('https://api.fifa.com/api/v1/timelines/'.ID_COMPETITION.'/'.ID_SEASON.'/'.
+        $db[$matchId]['stage_id'].'/'.$matchId.'?language='.LOCALE), true);
+    $events = $response["Event"];
+    foreach ($events as $event)
+    {
+        $eventType = $event["Type"];
+        $period = $event["Period"];
+        $eventTimeSeconds = strtotime($event["Timestamp"]);
+        if ($eventTimeSeconds > $lastUpdateSeconds)
+        {
+            $matchTime = $event["MatchMinute"];
+
+            $teamsById = $db[$matchId]['teamsById'];
+            $eventTeam = $teamsById[$event["IdTeam"]];
+            unset($teamsById[$event["IdTeam"]]);
+            $eventOtherTeam = reset($teamsById);
+            $eventPlayerAlias = null;
+
+            $score = $homeTeamName.' '.$event["HomeGoals"].' - '.$event["AwayGoals"].' '.$awayTeamName;
+            $subject = '';
+            $details = '';
+            $interestingEvent = true;
+            switch ($eventType) {
+                // Timekeeping
+                case EVENT_PERIOD_START:
+                    switch ($period) {
+                        case PERIOD_1ST_HALF:
+                            $subject = ':zap: '.$language[LOCALE][0].' '.$homeTeamName.' / '.$awayTeamName.' '.$language[LOCALE][8].'!';
+                            break;
+                        case PERIOD_2ND_HALF:
+                            $subject = ':runner: '.$language[LOCALE][0].' '.$homeTeamName.' / '.$awayTeamName.' '.$language[LOCALE][11];
+                            break;
+                    }
+                    break;
+                case EVENT_PERIOD_END:
+                    switch ($period) {
+                        case PERIOD_1ST_HALF:
+                            $subject = ':toilet: '.$language[LOCALE][9].' '.$score;;
+                            $details = $matchTime;
+                            break;
+                        case PERIOD_2ND_HALF:
+                            $subject = ':stopwatch: '.$language[LOCALE][10].' '.$score;;
+                            $details = $matchTime;
+                            break;
+                    }
+                    break;
+
+                // Goals
+                case EVENT_GOAL:
+                case EVENT_FREE_KICK_GOAL:
+                case EVENT_PENALTY_GOAL:
+                    $eventPlayerAlias = getEventPlayerAlias($event["IdPlayer"]);
+                    $subject = ':soccer: '.$language[LOCALE][6].' '.$eventTeam.'!!!';
+                    $details = $eventPlayerAlias.' ('.$matchTime.') '.$score;
+                    break;
+                case EVENT_OWN_GOAL:
+                    $eventPlayerAlias = getEventPlayerAlias($event["IdPlayer"]);
+                    $subject = ':face_palm: '.$language[LOCALE][4].' '.$eventTeam.'!!!';
+                    $details = $eventPlayerAlias.' ('.$matchTime.') '.$score;
+                    break;
+
+                // Cards
+                case EVENT_YELLOW_CARD:
+                    $eventPlayerAlias = getEventPlayerAlias($event["IdPlayer"]);
+                    $subject = ':collision: '. $language[LOCALE][2].' '.$eventTeam;
+                    $details = $eventPlayerAlias.' ('.$matchTime.')';
+                    break;
+                case EVENT_SECOND_YELLOW_CARD_RED:
+                case EVENT_STRAIGHT_RED:
+                $eventPlayerAlias = getEventPlayerAlias($event["IdPlayer"]);
+                $subject = ':collision: '. $language[LOCALE][3].' '.$eventTeam;
+                $details = $eventPlayerAlias.' ('.$matchTime.')';
+                    break;
+
+                // Penalties
+                case EVENT_FOUL_PENALTY:
+                    $subject = ':exclamation: '.$language[LOCALE][5].' ' .$eventOtherTeam.'!!!';
+                    break;
+                case EVENT_PENALTY_MISSED:
+                case EVENT_PENALTY_SAVED:
+                    $eventPlayerAlias = getEventPlayerAlias($event["IdPlayer"]);
+                    $subject = ':no_good: '.$language[LOCALE][7].' '.$eventTeam.'!!!';
+                    $details =  $eventPlayerAlias.' ('.$matchTime.')';
+                    break;
+                default:
+                    $interestingEvent = false;
+                    continue;
+            }
+
+            if ($interestingEvent) {
+                postToSlack($subject, $details);
+                $db[$matchId]['last_update'] = microtime();
+            }
+        }
+    }
+}
+
+// Record state for next run
 file_put_contents($dbFile, json_encode($db));
+
+exit(0);
