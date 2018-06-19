@@ -20,7 +20,7 @@ Here is a preview of the Ghana vs USA match.
 
   - PHP >= 5.3
   - You need a token from Slack:
-    - Jump at https://api.slack.com/docs/oauth-test-tokens (you have to login)
+    - Jump at https://api.slack.com/custom-integrations/legacy-tokens (you have to login)
     - and you will find your token.
 
 ### Installation

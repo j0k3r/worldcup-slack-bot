@@ -12,7 +12,7 @@
  *   - and of course, for every goal
  *
  * You will need a token from Slack.
- * Jump at https://api.slack.com/ under the "Authentication" part and you will find your token.
+ * Jump at https://api.slack.com/custom-integrations/legacy-tokens and you will find your token.
  *
  * @author j0k <jeremy.benoist@gmail.com>
  * @license MIT
