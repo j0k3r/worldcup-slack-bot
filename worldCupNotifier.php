@@ -40,14 +40,14 @@ $language = array(
     'fr-FR' => array(
         'Le match',
         'est sur le point de commencer',
-        'carton jaune',
-        'carton rouge',
+        'Carton jaune',
+        'Carton rouge',
         'contre son camp',
-        'sur penalty',
+        'Penalty',
         'BUUUUUT',
-        'penalty manquée',
+        'Penalty manqué',
         'commence',
-        'mi-temps',
+        'Mi-temps',
         'à plein temps',
         'a repris',
     ),
@@ -72,8 +72,8 @@ $language = array(
  */
 
 // 2018 World Cup
-const ID_COMPETITION=17;
-const ID_SEASON=254645;
+const ID_COMPETITION = 17;
+const ID_SEASON = 254645;
 
 // Match Statuses
 const MATCH_STATUS_FINISHED = 0;
@@ -99,30 +99,42 @@ const EVENT_FOUL_PENALTY = 72;
 const PERIOD_1ST_HALF = 3;
 const PERIOD_2ND_HALF = 5;
 
-
 /**
  * Below this line, you should modify at your own risk
- **/
+ */
+
+date_default_timezone_set("Zulu");
+$dbFile = './worldCupDB.json';
+$db = json_decode(file_get_contents($dbFile), true);
 
 /*
  * Get data from URL
  */
-function getUrl($url)
+function getUrl($url, $doNotUseEtag = false)
 {
-    if (!USE_PROXY)
-    {
-        return file_get_contents($url);
-    }
+    global $db;
+    global $dbFile;
 
     $ch = curl_init($url);
     $options = array(
-        CURLOPT_HEADER => 0,
-        CURLOPT_TIMEOUT => 3,
+        CURLOPT_HEADER => 1,
+        CURLOPT_TIMEOUT => 5,
         CURLOPT_RETURNTRANSFER => 1,
         CURLOPT_FOLLOWLOCATION => 1,
         CURLOPT_SSL_VERIFYPEER => false,
-        CURLOPT_PROXY => PROXY,
     );
+
+    if (!$doNotUseEtag && isset($db['etag']) && array_key_exists($url, $db['etag']))
+    {
+        $options[CURLOPT_HTTPHEADER] = [
+            'If-None-Match: "'.$db['etag'][$url].'"',
+        ];
+    }
+
+    if (USE_PROXY)
+    {
+        $options[CURLOPT_PROXY] = PROXY;
+    }
 
     if (PROXY_USERPWD)
     {
@@ -132,10 +144,32 @@ function getUrl($url)
     curl_setopt_array($ch, $options);
 
     $response = curl_exec($ch);
+
     if ($response !== false)
     {
+        $response = explode("\n\r", $response);
+
+        // retrieve etag header
+        preg_match('/ETag\: "([0-9]+)"/i', $response[0], $etagMatched);
+        if (count($etagMatched) > 1) {
+            $etag = $etagMatched[1];
+
+            $db['etag'][$url] = $etag;
+
+            // save new etag for that url
+            file_put_contents($dbFile, json_encode($db));
+        }
+
+        $content = $response[1];
+
         curl_close($ch);
-        return $response;
+
+        if (strlen(trim($content)) === 0) {
+            // echo "304 Not Modified\n";
+            return false;
+        }
+
+        return $content;
     }
 
     var_dump(curl_error($ch));
@@ -165,7 +199,7 @@ function postToSlack($text, $attachments_text = '')
 
 function getEventPlayerAlias($eventPlayerId)
 {
-    $response = json_decode(getUrl('https://api.fifa.com/api/v1/players/'.$eventPlayerId), true);
+    $response = json_decode(getUrl('https://api.fifa.com/api/v1/players/'.$eventPlayerId, true), true);
     return $response["Alias"][0]["Description"];
 }
 
@@ -175,15 +209,15 @@ function getEventPlayerAlias($eventPlayerId)
  * ==================
  */
 
-date_default_timezone_set("Zulu");
-$dbFile = './worldCupDB.json';
-$db = json_decode(file_get_contents($dbFile), true);
-
 // Retrieve all matches
-$response = json_decode(getUrl(
-    'https://api.fifa.com/api/v1/calendar/matches?idCompetition='.ID_COMPETITION.'&idSeason='.ID_SEASON.
-    '&count=500&language='.LOCALE), true);
-$matches = $response["Results"];
+$response = json_decode(getUrl('https://api.fifa.com/api/v1/calendar/matches?idCompetition='.ID_COMPETITION.'&idSeason='.ID_SEASON.'&count=500&language='.LOCALE), true);
+$matches = [];
+
+// in case of not a 304
+if (null !== $response)
+{
+    $matches = $response["Results"];
+}
 
 // Find live matches and update score
 foreach ($matches as $match)
@@ -215,7 +249,8 @@ foreach ($matches as $match)
         $db[$match["IdMatch"]]['score'] = $match["Home"]["TeamName"][0]["Description"].' '.$match["Home"]["Score"].' - '.$match["Away"]["Score"].' '.$match["Away"]["TeamName"][0]["Description"];
     }
 
-    file_put_contents($dbFile, json_encode($db)); // Save immediately, to avoid loops
+    // Save immediately, to avoid loops
+    file_put_contents($dbFile, json_encode($db));
 }
 
 // Post update on live matches (events since last updated time)
@@ -226,8 +261,14 @@ foreach ($db['live_matches'] as $matchId)
     $lastUpdateSeconds = explode(" ", $db[$matchId]['last_update'])[1];
 
     // Retrieve match events
-    $response = json_decode(getUrl('https://api.fifa.com/api/v1/timelines/'.ID_COMPETITION.'/'.ID_SEASON.'/'.
-        $db[$matchId]['stage_id'].'/'.$matchId.'?language='.LOCALE), true);
+    $response = json_decode(getUrl('https://api.fifa.com/api/v1/timelines/'.ID_COMPETITION.'/'.ID_SEASON.'/'.$db[$matchId]['stage_id'].'/'.$matchId.'?language='.LOCALE), true);
+
+    // in case of 304
+    if (null === $response)
+    {
+        continue;
+    }
+
     $events = $response["Event"];
     foreach ($events as $event)
     {
