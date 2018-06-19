@@ -165,8 +165,8 @@ function getUrl($url, $doNotUseEtag = false)
         curl_close($ch);
 
         if (strlen(trim($content)) === 0) {
-            echo "304 Not Modified\n";
-            die();
+            // echo "304 Not Modified\n";
+            return false;
         }
 
         return $content;
@@ -210,10 +210,14 @@ function getEventPlayerAlias($eventPlayerId)
  */
 
 // Retrieve all matches
-$response = json_decode(getUrl(
-    'https://api.fifa.com/api/v1/calendar/matches?idCompetition='.ID_COMPETITION.'&idSeason='.ID_SEASON.
-    '&count=500&language='.LOCALE), true);
-$matches = $response["Results"];
+$response = json_decode(getUrl('https://api.fifa.com/api/v1/calendar/matches?idCompetition='.ID_COMPETITION.'&idSeason='.ID_SEASON.'&count=500&language='.LOCALE), true);
+$matches = [];
+
+// in case of not a 304
+if (null !== $response)
+{
+    $matches = $response["Results"];
+}
 
 // Find live matches and update score
 foreach ($matches as $match)
@@ -258,6 +262,13 @@ foreach ($db['live_matches'] as $matchId)
 
     // Retrieve match events
     $response = json_decode(getUrl('https://api.fifa.com/api/v1/timelines/'.ID_COMPETITION.'/'.ID_SEASON.'/'.$db[$matchId]['stage_id'].'/'.$matchId.'?language='.LOCALE), true);
+
+    // in case of 304
+    if (null === $response)
+    {
+        continue;
+    }
+
     $events = $response["Event"];
     foreach ($events as $event)
     {
