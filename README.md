@@ -1,6 +1,6 @@
 # Worldcup Slack Bot
 
-WorldCupBot will notify a Slack channel/group for every matches during the 2014 FIFA World Cup Brazil™.
+WorldCupBot will notify a Slack channel/group for every matches during the 2018 FIFA World Cup Russia™.
 
 It uses the "unofficial" FIFA json API (the one used for their mobile apps).
 
