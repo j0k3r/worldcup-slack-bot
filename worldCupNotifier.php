@@ -39,16 +39,16 @@ const LOCALE = 'en-GB'; // fr-FR, en-GB
 $language = array(
     'fr-FR' => array(
         'Le match',
-        'est sur le point de commencer',
+        'est sur le point de commencer ',
         'Carton jaune',
         'Carton rouge',
-        'contre son camp',
-        'Penalty',
+        'But contre son camp',
+        'Pénalty',
         'BUUUUUT',
-        'Penalty manqué',
+        'Pénalty manqué',
         'commence',
         'Mi-temps',
-        'à plein temps',
+        'Fin de la 2e période',
         'a repris',
     ),
     'en-GB' => array(
@@ -88,6 +88,7 @@ const EVENT_SECOND_YELLOW_CARD_RED = 3; // Maybe?
 const EVENT_STRAIGHT_RED = 4; // Maybe?
 const EVENT_PERIOD_START = 7;
 const EVENT_PERIOD_END = 8;
+const EVENT_END_OF_GAME = 26;
 const EVENT_OWN_GOAL = 34;
 const EVENT_FREE_KICK_GOAL = 39;
 const EVENT_PENALTY_GOAL = 41;
@@ -106,6 +107,11 @@ const PERIOD_2ND_HALF = 5;
 date_default_timezone_set("Zulu");
 $dbFile = './worldCupDB.json';
 $db = json_decode(file_get_contents($dbFile), true);
+
+// clean etag once in a while
+if (isset($db['etag']) && count($db['etag']) > 5) {
+    $db['etag'] = [];
+}
 
 /*
  * Get data from URL
@@ -222,7 +228,7 @@ if (null !== $response)
 // Find live matches and update score
 foreach ($matches as $match)
 {
-    if (($match['MatchStatus'] == MATCH_STATUS_LIVE) && !in_array($match["IdMatch"], $db['live_matches']))
+    if ($match['MatchStatus'] == MATCH_STATUS_LIVE && !in_array($match["IdMatch"], $db['live_matches']))
     {
         // yay new match !
         $db['live_matches'][] = $match["IdMatch"];
@@ -240,7 +246,7 @@ foreach ($matches as $match)
         );
 
         // notify slack & save data
-        postToSlack($language[LOCALE][0].' '.$match["Home"]["TeamName"][0]["Description"].' / '.$match["Away"]["TeamName"][0]["Description"].' '.$language[LOCALE][1].'! ');
+        postToSlack(':zap: '.$language[LOCALE][0].' '.$match["Home"]["TeamName"][0]["Description"].' / '.$match["Away"]["TeamName"][0]["Description"].' '.$language[LOCALE][1].'! ');
     }
 
     if (in_array($match["IdMatch"], $db['live_matches']))
@@ -254,7 +260,7 @@ foreach ($matches as $match)
 }
 
 // Post update on live matches (events since last updated time)
-foreach ($db['live_matches'] as $matchId)
+foreach ($db['live_matches'] as $key => $matchId)
 {
     $homeTeamName = $db[$matchId]['teamsByHomeAway']["Home"];
     $awayTeamName = $db[$matchId]['teamsByHomeAway']["Away"];
@@ -289,6 +295,7 @@ foreach ($db['live_matches'] as $matchId)
             $subject = '';
             $details = '';
             $interestingEvent = true;
+
             switch ($eventType) {
                 // Timekeeping
                 case EVENT_PERIOD_START:
@@ -351,6 +358,14 @@ foreach ($db['live_matches'] as $matchId)
                     $subject = ':no_good: '.$language[LOCALE][7].' '.$eventTeam.'!!!';
                     $details =  $eventPlayerAlias.' ('.$matchTime.')';
                     break;
+
+                // end of live match
+                case EVENT_END_OF_GAME:
+                    unset($db['live_matches'][$key]);
+                    unset($db[$matchId]);
+                    $interestingEvent = false;
+                    break;
+
                 default:
                     $interestingEvent = false;
                     continue;

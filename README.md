@@ -12,9 +12,9 @@ It will post a message :
 
 ### Preview
 
-Here is a preview of the Ghana vs USA match.
+Here is a preview of the Colombia vs Japan match.
 
-![worldcup-slack-bot sample](http://i.imgur.com/ucMTQrq.png)
+![worldcup-slack-bot sample](https://i.imgur.com/H5kUavh.png)
 
 ### Requirements
 
