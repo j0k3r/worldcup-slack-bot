@@ -84,8 +84,8 @@ const MATCH_STATUS_PREMATCH = 12; // Maybe?
 // Event Types
 const EVENT_GOAL = 0;
 const EVENT_YELLOW_CARD = 2;
-const EVENT_SECOND_YELLOW_CARD_RED = 3; // Maybe?
-const EVENT_STRAIGHT_RED = 4; // Maybe?
+const EVENT_STRAIGHT_RED = 3;
+const EVENT_SECOND_YELLOW_CARD_RED = 4; // Maybe?
 const EVENT_PERIOD_START = 7;
 const EVENT_PERIOD_END = 8;
 const EVENT_END_OF_GAME = 26;
