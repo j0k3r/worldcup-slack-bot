@@ -50,6 +50,9 @@ $language = array(
         'Mi-temps',
         'Fin de la 2e période',
         'a repris',
+        'fin du 1er temps supplémentaire',
+        'fin du 2ème temps supplémentaire',
+        'fin du tir au pénalty',
     ),
     'en-GB' => array(
         'The match between',
@@ -64,6 +67,9 @@ $language = array(
         'HALF TIME',
         'FULL TIME',
         'has resumed',
+        'END OF 1ST ET',
+        'END OF 2ND ET',
+        'END OF PENALTY SHOOTOUT',
     )
 );
 
@@ -99,6 +105,9 @@ const EVENT_FOUL_PENALTY = 72;
 // Periods
 const PERIOD_1ST_HALF = 3;
 const PERIOD_2ND_HALF = 5;
+const PERIOD_1ST_ET   = 7;
+const PERIOD_2ND_ET   = 9;
+const PERIOD_PENALTY  = 11;
 
 /**
  * Below this line, you should modify at your own risk
@@ -304,6 +313,9 @@ foreach ($db['live_matches'] as $key => $matchId)
                             $subject = ':zap: '.$language[LOCALE][0].' '.$homeTeamName.' / '.$awayTeamName.' '.$language[LOCALE][8].'!';
                             break;
                         case PERIOD_2ND_HALF:
+                        case PERIOD_1ST_ET:
+                        case PERIOD_2ND_ET:
+                        case PERIOD_PENALTY:
                             $subject = ':runner: '.$language[LOCALE][0].' '.$homeTeamName.' / '.$awayTeamName.' '.$language[LOCALE][11];
                             break;
                     }
@@ -316,6 +328,18 @@ foreach ($db['live_matches'] as $key => $matchId)
                             break;
                         case PERIOD_2ND_HALF:
                             $subject = ':stopwatch: '.$language[LOCALE][10].' '.$score;;
+                            $details = $matchTime;
+                            break;
+                        case PERIOD_1ST_ET:
+                            $subject = ':toilet: '.$language[LOCALE][12].' '.$score;;
+                            $details = $matchTime;
+                            break;
+                        case PERIOD_2ND_ET:
+                            $subject = ':stopwatch: '.$language[LOCALE][13].' '.$score;;
+                            $details = $matchTime;
+                            break;
+                        case PERIOD_PENALTY:
+                            $subject = ':stopwatch: '.$language[LOCALE][14].' '.$score;;
                             $details = $matchTime;
                             break;
                     }
