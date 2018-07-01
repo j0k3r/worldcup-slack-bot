@@ -50,9 +50,9 @@ $language = array(
         'Mi-temps',
         'Fin de la 2e période',
         'a repris',
-        'fin du 1er temps supplémentaire',
-        'fin du 2ème temps supplémentaire',
-        'fin du tir au pénalty',
+        'Mi-temps de la prolongation',
+        'Fin de la prolongation',
+        'Fin de la séance de tirs au but',
     ),
     'en-GB' => array(
         'The match between',
