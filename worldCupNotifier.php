@@ -324,23 +324,23 @@ foreach ($db['live_matches'] as $key => $matchId)
                 case EVENT_PERIOD_END:
                     switch ($period) {
                         case PERIOD_1ST_HALF:
-                            $subject = ':toilet: '.$language[LOCALE][9].' '.$score;;
+                            $subject = ':toilet: '.$language[LOCALE][9].' '.$score;
                             $details = $matchTime;
                             break;
                         case PERIOD_2ND_HALF:
-                            $subject = ':stopwatch: '.$language[LOCALE][10].' '.$score;;
+                            $subject = ':stopwatch: '.$language[LOCALE][10].' '.$score;
                             $details = $matchTime;
                             break;
                         case PERIOD_1ST_ET:
-                            $subject = ':toilet: '.$language[LOCALE][12].' '.$score;;
+                            $subject = ':toilet: '.$language[LOCALE][12].' '.$score;
                             $details = $matchTime;
                             break;
                         case PERIOD_2ND_ET:
-                            $subject = ':stopwatch: '.$language[LOCALE][13].' '.$score;;
+                            $subject = ':stopwatch: '.$language[LOCALE][13].' '.$score;
                             $details = $matchTime;
                             break;
                         case PERIOD_PENALTY:
-                            $subject = ':stopwatch: '.$language[LOCALE][14].' '.$score;;
+                            $subject = ':stopwatch: '.$language[LOCALE][14].' '.$score.' ('.$event["HomePenaltyGoals"].' - '.$event["AwayPenaltyGoals"].')';
                             $details = $matchTime;
                             break;
                     }
@@ -353,6 +353,10 @@ foreach ($db['live_matches'] as $key => $matchId)
                     $eventPlayerAlias = getEventPlayerAlias($event["IdPlayer"]);
                     $subject = ':soccer: '.$language[LOCALE][6].' '.$eventTeam.'!!!';
                     $details = $eventPlayerAlias.' ('.$matchTime.') '.$score;
+
+                    if ($period === PERIOD_PENALTY) {
+                        $details .= ' ('.$event["HomePenaltyGoals"].' - '.$event["AwayPenaltyGoals"].')';
+                    }
                     break;
                 case EVENT_OWN_GOAL:
                     $eventPlayerAlias = getEventPlayerAlias($event["IdPlayer"]);
@@ -383,6 +387,10 @@ foreach ($db['live_matches'] as $key => $matchId)
                     $eventPlayerAlias = getEventPlayerAlias($event["IdPlayer"]);
                     $subject = ':no_good: '.$language[LOCALE][7].' '.$eventTeam.'!!!';
                     $details =  $eventPlayerAlias.' ('.$matchTime.')';
+
+                    if ($period === PERIOD_PENALTY) {
+                        $details .= ' ('.$event["HomePenaltyGoals"].' - '.$event["AwayPenaltyGoals"].')';
+                    }
                     break;
 
                 // end of live match
