@@ -99,6 +99,7 @@ const EVENT_OWN_GOAL = 34;
 const EVENT_FREE_KICK_GOAL = 39;
 const EVENT_PENALTY_GOAL = 41;
 const EVENT_PENALTY_SAVED = 60;
+const EVENT_PENALTY_CROSSBAR = 46;
 const EVENT_PENALTY_MISSED = 65;
 const EVENT_FOUL_PENALTY = 72;
 
@@ -378,6 +379,7 @@ foreach ($db['live_matches'] as $key => $matchId)
                     break;
                 case EVENT_PENALTY_MISSED:
                 case EVENT_PENALTY_SAVED:
+                case EVENT_PENALTY_CROSSBAR:
                     $eventPlayerAlias = getEventPlayerAlias($event["IdPlayer"]);
                     $subject = ':no_good: '.$language[LOCALE][7].' '.$eventTeam.'!!!';
                     $details =  $eventPlayerAlias.' ('.$matchTime.')';
