@@ -24,9 +24,9 @@
 
 // Slack stuff
 const SLACK_TOKEN      = 'XXXXXXXXXXXXXXXX';
-const SLACK_CHANNEL    = '#worldcup';
+const SLACK_CHANNEL    = '#ve-copa-do-mundo';
 const SLACK_BOT_NAME   = 'WorldCup Bot';
-const SLACK_BOT_AVATAR = 'https://i.imgur.com/Pd0cpqE.png';
+const SLACK_BOT_AVATAR = 'https://twibbon.blob.core.windows.net/twibbon/2018/159/bdea0a0d-bf58-45fe-9b3a-1068381469e9.png';
 
 const USE_PROXY     = false;
 const PROXY         = 'http://myproxy:3128';
@@ -34,7 +34,7 @@ const PROXY         = 'http://myproxy:3128';
 const PROXY_USERPWD = false;
 
 // Set to the language for updates
-const LOCALE = 'en-GB'; // fr-FR, en-GB
+const LOCALE = 'pt-PT'; // fr-FR, en-GB
 
 $language = array(
     'fr-FR' => array(
@@ -70,6 +70,23 @@ $language = array(
         'END OF 1ST ET',
         'END OF 2ND ET',
         'END OF PENALTY SHOOTOUT',
+    ),
+    'pt-PT' => array(
+        'O jogo entre',
+        'está para começar',
+        'Cartão amarelo',
+        'Cartão vermelho',
+        'Own goal',
+        'Pênalti',
+        'GOOOOOL',
+        'Pênalti perdido',
+        'começou',
+        'INTERVALO',
+        'ACRESCIMOS',
+        'recomeçou',
+        'FIM DO 1º TEMPO',
+        'FIM DO 2º TEMPO',
+        'FIM DA COBRANÇA DE PÊNALTIS',
     )
 );
 
@@ -77,9 +94,9 @@ $language = array(
  * FIFA API
  */
 
-// 2018 World Cup
+// 2022 World Cup
 const ID_COMPETITION = 17;
-const ID_SEASON = 254645;
+const ID_SEASON = 255711;
 
 // Match Statuses
 const MATCH_STATUS_FINISHED = 0;
