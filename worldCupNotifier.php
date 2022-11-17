@@ -23,10 +23,7 @@
  */
 
 // Slack stuff
-//const SLACK_TOKEN      = 'xoxb-6173064323-4386306105428-RJN5TRW3fAGkOvBBWR79LqPY';
 const SLACK_CHANNEL    = 'C04BNCVT049';
-// const SLACK_BOT_NAME   = 'WorldCup Bot';
-// const SLACK_BOT_AVATAR = 'https://twibbon.blob.core.windows.net/twibbon/2018/159/bdea0a0d-bf58-45fe-9b3a-1068381469e9.png';
 
 const USE_PROXY     = false;
 const PROXY         = 'http://myproxy:3128';
