@@ -23,10 +23,10 @@
  */
 
 // Slack stuff
-const SLACK_TOKEN      = 'XXXXXXXXXXXXXXXX';
-const SLACK_CHANNEL    = '#ve-copa-do-mundo';
-const SLACK_BOT_NAME   = 'WorldCup Bot';
-const SLACK_BOT_AVATAR = 'https://twibbon.blob.core.windows.net/twibbon/2018/159/bdea0a0d-bf58-45fe-9b3a-1068381469e9.png';
+//const SLACK_TOKEN      = 'xoxb-6173064323-4386306105428-RJN5TRW3fAGkOvBBWR79LqPY';
+const SLACK_CHANNEL    = 'C04BNCVT049';
+// const SLACK_BOT_NAME   = 'WorldCup Bot';
+// const SLACK_BOT_AVATAR = 'https://twibbon.blob.core.windows.net/twibbon/2018/159/bdea0a0d-bf58-45fe-9b3a-1068381469e9.png';
 
 const USE_PROXY     = false;
 const PROXY         = 'http://myproxy:3128';
@@ -76,7 +76,7 @@ $language = array(
         'está para começar',
         'Cartão amarelo',
         'Cartão vermelho',
-        'Own goal',
+        'Gol contra',
         'Pênalti',
         'GOOOOOL',
         'Pênalti perdido',
@@ -130,8 +130,7 @@ const PERIOD_PENALTY  = 11;
 /**
  * Below this line, you should modify at your own risk
  */
-
-date_default_timezone_set("Zulu");
+date_default_timezone_set("America/Sao_Paulo");
 $dbFile = './worldCupDB.json';
 $db = json_decode(file_get_contents($dbFile), true);
 
@@ -155,12 +154,14 @@ function getUrl($url, $doNotUseEtag = false)
         CURLOPT_RETURNTRANSFER => 1,
         CURLOPT_FOLLOWLOCATION => 1,
         CURLOPT_SSL_VERIFYPEER => false,
+        CURLOPT_HTTPHEADER => ['Authorization: Bearer xoxb-6173064323-4386306105428-RJN5TRW3fAGkOvBBWR79LqPY',]
     );
 
     if (!$doNotUseEtag && isset($db['etag']) && array_key_exists($url, $db['etag']))
     {
         $options[CURLOPT_HTTPHEADER] = [
             'If-None-Match: "'.$db['etag'][$url].'"',
+            'Authorization: Bearer xoxb-6173064323-4386306105428-RJN5TRW3fAGkOvBBWR79LqPY',
         ];
     }
 
@@ -215,11 +216,7 @@ function getUrl($url, $doNotUseEtag = false)
  */
 function postToSlack($text, $attachments_text = '')
 {
-    $slackUrl = 'https://slack.com/api/chat.postMessage?token='.SLACK_TOKEN.
-    '&channel='.urlencode(SLACK_CHANNEL).
-    '&username='.urlencode(SLACK_BOT_NAME).
-    '&icon_url='.SLACK_BOT_AVATAR.
-    '&unfurl_links=1&parse=full&pretty=1'.
+    $slackUrl = 'https://slack.com/api/chat.postMessage?channel='.SLACK_CHANNEL.
     '&text='.urlencode($text);
 
     if ($attachments_text)
