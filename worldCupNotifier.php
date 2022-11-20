@@ -23,9 +23,9 @@
  */
 
 // Slack stuff
-const SLACK_TOKEN      = 'XXXXXXXXXXXXXXXX';
-const SLACK_CHANNEL    = '#worldcup';
-const SLACK_BOT_NAME   = 'WorldCup Bot';
+const SLACK_TOKEN      = '';
+const SLACK_CHANNEL    = '#worldcup2022';
+const SLACK_BOT_NAME   = 'Maher WorldCup Bot';
 const SLACK_BOT_AVATAR = 'https://i.imgur.com/Pd0cpqE.png';
 
 const USE_PROXY     = false;
@@ -79,7 +79,7 @@ $language = array(
 
 // 2018 World Cup
 const ID_COMPETITION = 17;
-const ID_SEASON = 254645;
+const ID_SEASON = 255711;
 
 // Match Statuses
 const MATCH_STATUS_FINISHED = 0;
@@ -113,6 +113,7 @@ const PERIOD_PENALTY  = 11;
 /**
  * Below this line, you should modify at your own risk
  */
+
 
 date_default_timezone_set("Zulu");
 $dbFile = './worldCupDB.json';
@@ -196,26 +197,63 @@ function getUrl($url, $doNotUseEtag = false)
 /*
  * Post text and attachments to Slack
  */
-function postToSlack($text, $attachments_text = '')
+  testtoslack("maher");
+ function testtoslack($message, $attachments_text = '')
 {
-    $slackUrl = 'https://slack.com/api/chat.postMessage?token='.SLACK_TOKEN.
-    '&channel='.urlencode(SLACK_CHANNEL).
-    '&username='.urlencode(SLACK_BOT_NAME).
-    '&icon_url='.SLACK_BOT_AVATAR.
-    '&unfurl_links=1&parse=full&pretty=1'.
-    '&text='.urlencode($text);
-
-    if ($attachments_text)
-    {
-        $slackUrl .= '&attachments='.urlencode('[{"text": "'.$attachments_text.'"}]');
-    }
-
-    var_dump(getUrl($slackUrl));
+    $ch = curl_init("https://slack.com/api/chat.postMessage");
+    $data = http_build_query([
+        "token" => "xoxb-221236777429-4396799127747-LkHjd8hsIrnyJP2TTVN7GTIu",
+    	"channel" => "#testbotyes", //"#mychannel",
+    	"text" => $message, //"Hello, Foo-Bar channel message.",
+    	"username" => "MySlackBot",
+    ]);
+    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'POST');
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    $result = curl_exec($ch);
+    curl_close($ch);
+    
+    return $result;
 }
+function postToSlack($message, $attachments_text = '')
+{
+    $ch = curl_init("https://slack.com/api/chat.postMessage");
+    $data = http_build_query([
+        "token" => "xoxb-221236777429-4396799127747-LkHjd8hsIrnyJP2TTVN7GTIu",
+    	"channel" => "#worldcup2022", //"#mychannel",
+    	"text" => $message, //"Hello, Foo-Bar channel message.",
+    	"username" => "MySlackBot",
+    ]);
+    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'POST');
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    $result = curl_exec($ch);
+    curl_close($ch);
+    
+    return $result;
+}
+// function postToSlack($text, $attachments_text = '')
+// {
+//     $slackUrl = 'https://slack.com/api/chat.postMessage?token='.SLACK_TOKEN.
+//     '&channel='.urlencode(SLACK_CHANNEL).
+//     '&username='.urlencode(SLACK_BOT_NAME).
+//     '&icon_url='.SLACK_BOT_AVATAR.
+//     '&unfurl_links=1&parse=full&pretty=1'.
+//     '&text='.urlencode($text);
+
+//     if ($attachments_text)
+//     {
+//         $slackUrl .= '&attachments='.urlencode('[{"text": "'.$attachments_text.'"}]');
+//     }
+
+//     var_dump(getUrl($slackUrl));
+// }
 
 function getEventPlayerAlias($eventPlayerId)
 {
-    $response = json_decode(getUrl('https://api.fifa.com/api/v1/players/'.$eventPlayerId, true), true);
+    $response = json_decode(getUrl('https://api.fifa.com/api/v3/players/'.$eventPlayerId, true), true);
     return $response["Alias"][0]["Description"];
 }
 
@@ -226,15 +264,18 @@ function getEventPlayerAlias($eventPlayerId)
  */
 
 // Retrieve all matches
-$response = json_decode(getUrl('https://api.fifa.com/api/v1/calendar/matches?idCompetition='.ID_COMPETITION.'&idSeason='.ID_SEASON.'&count=500&language='.LOCALE), true);
+$response = json_decode(getUrl('https://api.fifa.com/api/v3/calendar/matches?idCompetition='.ID_COMPETITION.'&idSeason='.ID_SEASON.'&count=500&language='.LOCALE), true);
 $matches = [];
+$test = 'https://api.fifa.com/api/v3/calendar/matches?idCompetition='.ID_COMPETITION.'&idSeason='.ID_SEASON.'&count=500&language='.LOCALE ;
+testtoslack($test);
 
+testtoslack($ID_SEASON);
 // in case of not a 304
 if (null !== $response)
 {
     $matches = $response["Results"];
 }
-
+testtoslack($matches);
 // Find live matches and update score
 foreach ($matches as $match)
 {
@@ -277,7 +318,7 @@ foreach ($db['live_matches'] as $key => $matchId)
     $lastUpdateSeconds = explode(" ", $db[$matchId]['last_update'])[1];
 
     // Retrieve match events
-    $response = json_decode(getUrl('https://api.fifa.com/api/v1/timelines/'.ID_COMPETITION.'/'.ID_SEASON.'/'.$db[$matchId]['stage_id'].'/'.$matchId.'?language='.LOCALE), true);
+    $response = json_decode(getUrl('https://api.fifa.com/api/v3/timelines/'.ID_COMPETITION.'/'.ID_SEASON.'/'.$db[$matchId]['stage_id'].'/'.$matchId.'?language='.LOCALE), true);
 
     // in case of 304
     if (null === $response)
