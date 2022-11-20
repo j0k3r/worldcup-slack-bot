@@ -202,7 +202,7 @@ function getUrl($url, $doNotUseEtag = false)
 {
     $ch = curl_init("https://slack.com/api/chat.postMessage");
     $data = http_build_query([
-        "token" => "xoxb-221236777429-4396799127747-LkHjd8hsIrnyJP2TTVN7GTIu",
+        "token" => "",
     	"channel" => "#testbotyes", //"#mychannel",
     	"text" => $message, //"Hello, Foo-Bar channel message.",
     	"username" => "MySlackBot",
@@ -220,7 +220,7 @@ function postToSlack($message, $attachments_text = '')
 {
     $ch = curl_init("https://slack.com/api/chat.postMessage");
     $data = http_build_query([
-        "token" => "xoxb-221236777429-4396799127747-LkHjd8hsIrnyJP2TTVN7GTIu",
+        "token" => "",
     	"channel" => "#worldcup2022", //"#mychannel",
     	"text" => $message, //"Hello, Foo-Bar channel message.",
     	"username" => "MySlackBot",
