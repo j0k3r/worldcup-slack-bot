@@ -23,7 +23,7 @@
  */
 
 // Slack stuff
-const SLACK_TOKEN      = '';
+const SLACK_TOKEN      = ''; //slack bot token
 const SLACK_CHANNEL    = '#worldcup2022';
 const SLACK_BOT_NAME   = 'Maher WorldCup Bot';
 const SLACK_BOT_AVATAR = 'https://i.imgur.com/Pd0cpqE.png';
