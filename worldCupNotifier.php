@@ -197,7 +197,7 @@ function getUrl($url, $doNotUseEtag = false)
 /*
  * Post text and attachments to Slack
  */
-  testtoslack("maher");
+//use this function to test the bot is sending to slack token check just call the function
  function testtoslack($message, $attachments_text = '')
 {
     $ch = curl_init("https://slack.com/api/chat.postMessage");
@@ -266,10 +266,7 @@ function getEventPlayerAlias($eventPlayerId)
 // Retrieve all matches
 $response = json_decode(getUrl('https://api.fifa.com/api/v3/calendar/matches?idCompetition='.ID_COMPETITION.'&idSeason='.ID_SEASON.'&count=500&language='.LOCALE), true);
 $matches = [];
-$test = 'https://api.fifa.com/api/v3/calendar/matches?idCompetition='.ID_COMPETITION.'&idSeason='.ID_SEASON.'&count=500&language='.LOCALE ;
-testtoslack($test);
 
-testtoslack($ID_SEASON);
 // in case of not a 304
 if (null !== $response)
 {
