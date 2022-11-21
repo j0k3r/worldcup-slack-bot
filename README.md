@@ -35,9 +35,12 @@ It will post a message :
 
 ### Preview
 
-Here is a preview of the Colombia vs Japan match during the Russia World Cup 2018.
+Here is a preview of the United States vs Wales match (during the 2022 edition).
 
-![worldcup-slack-bot sample](https://i.imgur.com/H5kUavh.png)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://user-images.githubusercontent.com/62333/203157860-f3463d78-be76-4dae-a580-248131382830.png">
+  <img width="720" alt="worldcup-slack-bot sample" src="https://user-images.githubusercontent.com/62333/203157864-06b82dc3-b792-474b-b24e-f966c9bd3b5f.png">
+</picture>
 
 ### Requirements
 
