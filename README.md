@@ -41,10 +41,13 @@ Here is a preview of the Colombia vs Japan match during the Russia World Cup 201
 
 ### Requirements
 
-  - PHP >= 5.3
-  - You need a token from Slack:
-    - Jump at https://api.slack.com/custom-integrations/legacy-tokens (you have to login)
-    - and you will find your token.
+  - PHP >= 5.5 (I guess?)
+  - You need to create a Slack Apps with an incoming webhooks:
+    - Jump at https://api.slack.com/messaging/webhooks (you have to login)
+    - Create a Slack app
+    - Enable Incoming Webhooks
+    - Create an Incoming Webhook (you'll then select the channel used for that bot)
+    - Grab the link like `https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX` and put it in `SLACK_URL`
 
 ### Installation
 

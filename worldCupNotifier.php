@@ -11,33 +11,29 @@
  *   - for every penalty
  *   - and of course, for every goal
  *
- * You will need a token from Slack.
- * Jump at https://api.slack.com/custom-integrations/legacy-tokens and you will find your token.
+ * You will need a Slack Apps with an IncomingWebhooks.
  *
  * @author j0k <jeremy.benoist@gmail.com>
  * @license MIT
  */
 
 /**
- * All the configuration are just below
+ * All the configuration are just below.
  */
 
 // Slack stuff
-const SLACK_TOKEN      = 'XXXXXXXXXXXXXXXX';
-const SLACK_CHANNEL    = '#worldcup';
-const SLACK_BOT_NAME   = 'WorldCup Bot';
-const SLACK_BOT_AVATAR = 'https://i.imgur.com/Pd0cpqE.png';
+const SLACK_URL = 'https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX';
 
-const USE_PROXY     = false;
-const PROXY         = 'http://myproxy:3128';
+const USE_PROXY = false;
+const PROXY = 'http://myproxy:3128';
 // If a proxy authentification is needed, set PROXY_USERPWD to "user:password"
 const PROXY_USERPWD = false;
 
 // Set to the language for updates
 const LOCALE = 'en-GB'; // fr-FR, en-GB
 
-$language = array(
-    'fr-FR' => array(
+$language = [
+    'fr-FR' => [
         'Le match',
         'est sur le point de commencer ',
         'Carton jaune',
@@ -53,8 +49,8 @@ $language = array(
         'Mi-temps de la prolongation',
         'Fin de la prolongation',
         'Fin de la séance de tirs au but',
-    ),
-    'en-GB' => array(
+    ],
+    'en-GB' => [
         'The match between',
         'is about to start',
         'Yellow card',
@@ -70,16 +66,16 @@ $language = array(
         'END OF 1ST ET',
         'END OF 2ND ET',
         'END OF PENALTY SHOOTOUT',
-    )
-);
+    ],
+];
 
 /**
- * FIFA API
+ * FIFA API.
  */
 
 // 2018 World Cup
 const ID_COMPETITION = 17;
-const ID_SEASON = 254645;
+const ID_SEASON = 255711;
 
 // Match Statuses
 const MATCH_STATUS_FINISHED = 0;
@@ -106,15 +102,15 @@ const EVENT_FOUL_PENALTY = 72;
 // Periods
 const PERIOD_1ST_HALF = 3;
 const PERIOD_2ND_HALF = 5;
-const PERIOD_1ST_ET   = 7;
-const PERIOD_2ND_ET   = 9;
-const PERIOD_PENALTY  = 11;
+const PERIOD_1ST_ET = 7;
+const PERIOD_2ND_ET = 9;
+const PERIOD_PENALTY = 11;
 
-/**
+/*
  * Below this line, you should modify at your own risk
  */
 
-date_default_timezone_set("Zulu");
+date_default_timezone_set('Zulu');
 $dbFile = './worldCupDB.json';
 $db = json_decode(file_get_contents($dbFile), true);
 
@@ -132,37 +128,33 @@ function getUrl($url, $doNotUseEtag = false)
     global $dbFile;
 
     $ch = curl_init($url);
-    $options = array(
-        CURLOPT_HEADER => 1,
-        CURLOPT_TIMEOUT => 5,
-        CURLOPT_RETURNTRANSFER => 1,
-        CURLOPT_FOLLOWLOCATION => 1,
-        CURLOPT_SSL_VERIFYPEER => false,
-    );
+    $options = [
+        \CURLOPT_HEADER => 1,
+        \CURLOPT_TIMEOUT => 5,
+        \CURLOPT_RETURNTRANSFER => 1,
+        \CURLOPT_FOLLOWLOCATION => 1,
+        \CURLOPT_SSL_VERIFYPEER => false,
+    ];
 
-    if (!$doNotUseEtag && isset($db['etag']) && array_key_exists($url, $db['etag']))
-    {
-        $options[CURLOPT_HTTPHEADER] = [
-            'If-None-Match: "'.$db['etag'][$url].'"',
+    if (!$doNotUseEtag && isset($db['etag']) && array_key_exists($url, $db['etag'])) {
+        $options[\CURLOPT_HTTPHEADER] = [
+            'If-None-Match: "' . $db['etag'][$url] . '"',
         ];
     }
 
-    if (USE_PROXY)
-    {
-        $options[CURLOPT_PROXY] = PROXY;
+    if (USE_PROXY) {
+        $options[\CURLOPT_PROXY] = PROXY;
     }
 
-    if (PROXY_USERPWD)
-    {
-        $options[CURLOPT_PROXYUSERPWD] = PROXY_USERPWD;
+    if (PROXY_USERPWD) {
+        $options[\CURLOPT_PROXYUSERPWD] = PROXY_USERPWD;
     }
 
     curl_setopt_array($ch, $options);
 
     $response = curl_exec($ch);
 
-    if ($response !== false)
-    {
+    if (false !== $response) {
         $response = explode("\n\r", $response);
 
         // retrieve etag header
@@ -180,7 +172,7 @@ function getUrl($url, $doNotUseEtag = false)
 
         curl_close($ch);
 
-        if (strlen(trim($content)) === 0) {
+        if ('' === trim($content)) {
             // echo "304 Not Modified\n";
             return false;
         }
@@ -190,7 +182,7 @@ function getUrl($url, $doNotUseEtag = false)
 
     var_dump(curl_error($ch));
     curl_close($ch);
-    die();
+    exit;
 }
 
 /*
@@ -198,25 +190,50 @@ function getUrl($url, $doNotUseEtag = false)
  */
 function postToSlack($text, $attachments_text = '')
 {
-    $slackUrl = 'https://slack.com/api/chat.postMessage?token='.SLACK_TOKEN.
-    '&channel='.urlencode(SLACK_CHANNEL).
-    '&username='.urlencode(SLACK_BOT_NAME).
-    '&icon_url='.SLACK_BOT_AVATAR.
-    '&unfurl_links=1&parse=full&pretty=1'.
-    '&text='.urlencode($text);
+    $data = [
+      'unfurl_links' => 1,
+      'parse' => 'full',
+      'pretty' => 1,
+      'text' => $text,
+    ];
 
-    if ($attachments_text)
-    {
-        $slackUrl .= '&attachments='.urlencode('[{"text": "'.$attachments_text.'"}]');
+    if ($attachments_text) {
+        $data['attachments'] = [[
+          'text' => $attachments_text,
+        ]];
     }
 
-    var_dump(getUrl($slackUrl));
+    $ch = curl_init(SLACK_URL);
+    $options = [
+        \CURLOPT_HEADER => 1,
+        \CURLOPT_TIMEOUT => 5,
+        \CURLOPT_RETURNTRANSFER => 1,
+        \CURLOPT_FOLLOWLOCATION => 1,
+        \CURLOPT_SSL_VERIFYPEER => false,
+        \CURLOPT_POST => false,
+        \CURLOPT_POSTFIELDS => json_encode($data),
+        \CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+    ];
+
+    if (USE_PROXY) {
+        $options[\CURLOPT_PROXY] = PROXY;
+    }
+
+    if (PROXY_USERPWD) {
+        $options[\CURLOPT_PROXYUSERPWD] = PROXY_USERPWD;
+    }
+
+    curl_setopt_array($ch, $options);
+
+    curl_exec($ch);
+    curl_close($ch);
 }
 
 function getEventPlayerAlias($eventPlayerId)
 {
-    $response = json_decode(getUrl('https://api.fifa.com/api/v1/players/'.$eventPlayerId, true), true);
-    return $response["Alias"][0]["Description"];
+    $response = json_decode(getUrl('https://api.fifa.com/api/v3/players/' . $eventPlayerId, true), true);
+
+    return $response['Alias'][0]['Description'];
 }
 
 /**
@@ -226,43 +243,39 @@ function getEventPlayerAlias($eventPlayerId)
  */
 
 // Retrieve all matches
-$response = json_decode(getUrl('https://api.fifa.com/api/v1/calendar/matches?idCompetition='.ID_COMPETITION.'&idSeason='.ID_SEASON.'&count=500&language='.LOCALE), true);
+$response = json_decode(getUrl('https://api.fifa.com/api/v3/calendar/matches?idCompetition=' . ID_COMPETITION . '&idSeason=' . ID_SEASON . '&count=500&language=' . LOCALE), true);
 $matches = [];
 
 // in case of not a 304
-if (null !== $response)
-{
-    $matches = $response["Results"];
+if (null !== $response) {
+    $matches = $response['Results'];
 }
 
 // Find live matches and update score
-foreach ($matches as $match)
-{
-    if ($match['MatchStatus'] == MATCH_STATUS_LIVE && !in_array($match["IdMatch"], $db['live_matches']))
-    {
+foreach ($matches as $match) {
+    if (MATCH_STATUS_LIVE === $match['MatchStatus'] && !in_array($match['IdMatch'], $db['live_matches'], true)) {
         // yay new match !
-        $db['live_matches'][] = $match["IdMatch"];
-        $db[$match["IdMatch"]] = array(
-            'stage_id' => $match["IdStage"],
+        $db['live_matches'][] = $match['IdMatch'];
+        $db[$match['IdMatch']] = [
+            'stage_id' => $match['IdStage'],
             'teamsById' => [
-                $match["Home"]["IdTeam"] => $match["Home"]["TeamName"][0]["Description"],
-                $match["Away"]["IdTeam"] => $match["Away"]["TeamName"][0]["Description"]
+                $match['Home']['IdTeam'] => $match['Home']['TeamName'][0]['Description'],
+                $match['Away']['IdTeam'] => $match['Away']['TeamName'][0]['Description'],
             ],
             'teamsByHomeAway' => [
-                "Home" => $match["Home"]["TeamName"][0]["Description"],
-                "Away" => $match["Away"]["TeamName"][0]["Description"]
+                'Home' => $match['Home']['TeamName'][0]['Description'],
+                'Away' => $match['Away']['TeamName'][0]['Description'],
             ],
-            'last_update' => microtime()
-        );
+            'last_update' => microtime(),
+        ];
 
         // notify slack & save data
-        postToSlack(':zap: '.$language[LOCALE][0].' '.$match["Home"]["TeamName"][0]["Description"].' / '.$match["Away"]["TeamName"][0]["Description"].' '.$language[LOCALE][1].'! ');
+        postToSlack(':zap: ' . $language[LOCALE][0] . ' ' . $match['Home']['TeamName'][0]['Description'] . ' / ' . $match['Away']['TeamName'][0]['Description'] . ' ' . $language[LOCALE][1] . '! ');
     }
 
-    if (in_array($match["IdMatch"], $db['live_matches']))
-    {
+    if (in_array($match['IdMatch'], $db['live_matches'], true)) {
         // update score
-        $db[$match["IdMatch"]]['score'] = $match["Home"]["TeamName"][0]["Description"].' '.$match["Home"]["Score"].' - '.$match["Away"]["Score"].' '.$match["Away"]["TeamName"][0]["Description"];
+        $db[$match['IdMatch']]['score'] = $match['Home']['TeamName'][0]['Description'] . ' ' . $match['Home']['Score'] . ' - ' . $match['Away']['Score'] . ' ' . $match['Away']['TeamName'][0]['Description'];
     }
 
     // Save immediately, to avoid loops
@@ -270,38 +283,37 @@ foreach ($matches as $match)
 }
 
 // Post update on live matches (events since last updated time)
-foreach ($db['live_matches'] as $key => $matchId)
-{
-    $homeTeamName = $db[$matchId]['teamsByHomeAway']["Home"];
-    $awayTeamName = $db[$matchId]['teamsByHomeAway']["Away"];
-    $lastUpdateSeconds = explode(" ", $db[$matchId]['last_update'])[1];
+foreach ($db['live_matches'] as $key => $matchId) {
+    $homeTeamName = $db[$matchId]['teamsByHomeAway']['Home'];
+    $awayTeamName = $db[$matchId]['teamsByHomeAway']['Away'];
+    $lastUpdateSeconds = explode(' ', $db[$matchId]['last_update'])[1];
 
     // Retrieve match events
-    $response = json_decode(getUrl('https://api.fifa.com/api/v1/timelines/'.ID_COMPETITION.'/'.ID_SEASON.'/'.$db[$matchId]['stage_id'].'/'.$matchId.'?language='.LOCALE), true);
+    $response = json_decode(getUrl('https://api.fifa.com/api/v3/timelines/' . ID_COMPETITION . '/' . ID_SEASON . '/' . $db[$matchId]['stage_id'] . '/' . $matchId . '?language=' . LOCALE), true);
 
     // in case of 304
-    if (null === $response)
-    {
+    if (null === $response) {
         continue;
     }
 
-    $events = $response["Event"];
-    foreach ($events as $event)
-    {
-        $eventType = $event["Type"];
-        $period = $event["Period"];
-        $eventTimeSeconds = strtotime($event["Timestamp"]);
-        if ($eventTimeSeconds > $lastUpdateSeconds)
-        {
-            $matchTime = $event["MatchMinute"];
+    $events = $response['Event'];
+    foreach ($events as $event) {
+        $eventType = $event['Type'];
+        $period = $event['Period'];
+        $eventTimeSeconds = strtotime($event['Timestamp']);
+        if ($eventTimeSeconds > $lastUpdateSeconds) {
+            $matchTime = $event['MatchMinute'];
 
             $teamsById = $db[$matchId]['teamsById'];
-            $eventTeam = $teamsById[$event["IdTeam"]];
-            unset($teamsById[$event["IdTeam"]]);
+            $eventTeam = '';
+            if (isset($event['IdTeam'])) {
+                $eventTeam = $teamsById[$event['IdTeam']];
+                unset($teamsById[$event['IdTeam']]);
+            }
             $eventOtherTeam = reset($teamsById);
             $eventPlayerAlias = null;
 
-            $score = $homeTeamName.' '.$event["HomeGoals"].' - '.$event["AwayGoals"].' '.$awayTeamName;
+            $score = $homeTeamName . ' ' . $event['HomeGoals'] . ' - ' . $event['AwayGoals'] . ' ' . $awayTeamName;
             $subject = '';
             $details = '';
             $interestingEvent = true;
@@ -311,98 +323,93 @@ foreach ($db['live_matches'] as $key => $matchId)
                 case EVENT_PERIOD_START:
                     switch ($period) {
                         case PERIOD_1ST_HALF:
-                            $subject = ':zap: '.$language[LOCALE][0].' '.$homeTeamName.' / '.$awayTeamName.' '.$language[LOCALE][8].'!';
+                            $subject = ':zap: ' . $language[LOCALE][0] . ' ' . $homeTeamName . ' / ' . $awayTeamName . ' ' . $language[LOCALE][8] . '!';
                             break;
                         case PERIOD_2ND_HALF:
                         case PERIOD_1ST_ET:
                         case PERIOD_2ND_ET:
                         case PERIOD_PENALTY:
-                            $subject = ':runner: '.$language[LOCALE][0].' '.$homeTeamName.' / '.$awayTeamName.' '.$language[LOCALE][11];
+                            $subject = ':runner: ' . $language[LOCALE][0] . ' ' . $homeTeamName . ' / ' . $awayTeamName . ' ' . $language[LOCALE][11];
                             break;
                     }
                     break;
                 case EVENT_PERIOD_END:
                     switch ($period) {
                         case PERIOD_1ST_HALF:
-                            $subject = ':toilet: '.$language[LOCALE][9].' '.$score;
+                            $subject = ':toilet: ' . $language[LOCALE][9] . ' ' . $score;
                             $details = $matchTime;
                             break;
                         case PERIOD_2ND_HALF:
-                            $subject = ':stopwatch: '.$language[LOCALE][10].' '.$score;
+                            $subject = ':stopwatch: ' . $language[LOCALE][10] . ' ' . $score;
                             $details = $matchTime;
                             break;
                         case PERIOD_1ST_ET:
-                            $subject = ':toilet: '.$language[LOCALE][12].' '.$score;
+                            $subject = ':toilet: ' . $language[LOCALE][12] . ' ' . $score;
                             $details = $matchTime;
                             break;
                         case PERIOD_2ND_ET:
-                            $subject = ':stopwatch: '.$language[LOCALE][13].' '.$score;
+                            $subject = ':stopwatch: ' . $language[LOCALE][13] . ' ' . $score;
                             $details = $matchTime;
                             break;
                         case PERIOD_PENALTY:
-                            $subject = ':stopwatch: '.$language[LOCALE][14].' '.$score.' ('.$event["HomePenaltyGoals"].' - '.$event["AwayPenaltyGoals"].')';
+                            $subject = ':stopwatch: ' . $language[LOCALE][14] . ' ' . $score . ' (' . $event['HomePenaltyGoals'] . ' - ' . $event['AwayPenaltyGoals'] . ')';
                             $details = $matchTime;
                             break;
                     }
                     break;
-
-                // Goals
+                    // Goals
                 case EVENT_GOAL:
                 case EVENT_FREE_KICK_GOAL:
                 case EVENT_PENALTY_GOAL:
-                    $eventPlayerAlias = getEventPlayerAlias($event["IdPlayer"]);
-                    $subject = ':soccer: '.$language[LOCALE][6].' '.$eventTeam.'!!!';
-                    $details = $eventPlayerAlias.' ('.$matchTime.') '.$score;
+                    $eventPlayerAlias = getEventPlayerAlias($event['IdPlayer']);
+                    $subject = ':soccer: ' . $language[LOCALE][6] . ' ' . $eventTeam . '!!!';
+                    $details = $eventPlayerAlias . ' (' . $matchTime . ') ' . $score;
 
-                    if ($period === PERIOD_PENALTY) {
-                        $details .= ' ('.$event["HomePenaltyGoals"].' - '.$event["AwayPenaltyGoals"].')';
+                    if (PERIOD_PENALTY === $period) {
+                        $details .= ' (' . $event['HomePenaltyGoals'] . ' - ' . $event['AwayPenaltyGoals'] . ')';
                     }
                     break;
                 case EVENT_OWN_GOAL:
-                    $eventPlayerAlias = getEventPlayerAlias($event["IdPlayer"]);
-                    $subject = ':face_palm: '.$language[LOCALE][4].' '.$eventTeam.'!!!';
-                    $details = $eventPlayerAlias.' ('.$matchTime.') '.$score;
+                    $eventPlayerAlias = getEventPlayerAlias($event['IdPlayer']);
+                    $subject = ':face_palm: ' . $language[LOCALE][4] . ' ' . $eventTeam . '!!!';
+                    $details = $eventPlayerAlias . ' (' . $matchTime . ') ' . $score;
                     break;
-
-                // Cards
+                    // Cards
                 case EVENT_YELLOW_CARD:
-                    $eventPlayerAlias = getEventPlayerAlias($event["IdPlayer"]);
-                    $subject = ':collision: '. $language[LOCALE][2].' '.$eventTeam;
-                    $details = $eventPlayerAlias.' ('.$matchTime.')';
+                    $eventPlayerAlias = getEventPlayerAlias($event['IdPlayer']);
+                    $subject = ':collision: ' . $language[LOCALE][2] . ' ' . $eventTeam;
+                    $details = $eventPlayerAlias . ' (' . $matchTime . ')';
                     break;
                 case EVENT_SECOND_YELLOW_CARD_RED:
                 case EVENT_STRAIGHT_RED:
-                $eventPlayerAlias = getEventPlayerAlias($event["IdPlayer"]);
-                $subject = ':collision: '. $language[LOCALE][3].' '.$eventTeam;
-                $details = $eventPlayerAlias.' ('.$matchTime.')';
+                    $eventPlayerAlias = getEventPlayerAlias($event['IdPlayer']);
+                    $subject = ':collision: ' . $language[LOCALE][3] . ' ' . $eventTeam;
+                    $details = $eventPlayerAlias . ' (' . $matchTime . ')';
                     break;
-
-                // Penalties
+                    // Penalties
                 case EVENT_FOUL_PENALTY:
-                    $subject = ':exclamation: '.$language[LOCALE][5].' ' .$eventOtherTeam.'!!!';
+                    $subject = ':exclamation: ' . $language[LOCALE][5] . ' ' . $eventOtherTeam . '!!!';
                     break;
                 case EVENT_PENALTY_MISSED:
                 case EVENT_PENALTY_SAVED:
                 case EVENT_PENALTY_CROSSBAR:
-                    $eventPlayerAlias = getEventPlayerAlias($event["IdPlayer"]);
-                    $subject = ':no_good: '.$language[LOCALE][7].' '.$eventTeam.'!!!';
-                    $details =  $eventPlayerAlias.' ('.$matchTime.')';
+                    $eventPlayerAlias = getEventPlayerAlias($event['IdPlayer']);
+                    $subject = ':no_good: ' . $language[LOCALE][7] . ' ' . $eventTeam . '!!!';
+                    $details = $eventPlayerAlias . ' (' . $matchTime . ')';
 
-                    if ($period === PERIOD_PENALTY) {
-                        $details .= ' ('.$event["HomePenaltyGoals"].' - '.$event["AwayPenaltyGoals"].')';
+                    if (PERIOD_PENALTY === $period) {
+                        $details .= ' (' . $event['HomePenaltyGoals'] . ' - ' . $event['AwayPenaltyGoals'] . ')';
                     }
                     break;
-
-                // end of live match
+                    // end of live match
                 case EVENT_END_OF_GAME:
-                    unset($db['live_matches'][$key]);
-                    unset($db[$matchId]);
+                    unset($db['live_matches'][$key], $db[$matchId]);
+
                     $interestingEvent = false;
                     break;
-
                 default:
                     $interestingEvent = false;
-                    continue;
+                    continue 2;
             }
 
             if ($interestingEvent) {
