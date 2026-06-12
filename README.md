@@ -7,12 +7,13 @@ Which means you can use that bot for every FIFA World Cup, you just need to upda
 
 ### Find the competition you are looking for
 
-World Cup | `ID_COMPETITION` | `ID_SEASON`
------------- | ------------- | -------------
-FIFA World Cup Russia 2018™ | 17 | 254645
-FIFA U-20 World Cup Poland 2019 | 104 | 281971
-FIFA Women's World Cup France 2019™ | 103 | 278513
-FIFA World Cup Qatar 2022™  | 17 | 255711
+| World Cup                           | `ID_COMPETITION` | `ID_SEASON` |
+| ----------------------------------- | ---------------- | ----------- |
+| FIFA World Cup Russia 2018™         | 17               | 254645      |
+| FIFA U-20 World Cup Poland 2019     | 104              | 281971      |
+| FIFA Women's World Cup France 2019™ | 103              | 278513      |
+| FIFA World Cup Qatar 2022™          | 17               | 255711      |
+| FIFA World Cup 26™                  | 17               | 285023      |
 
 If the competition you are looking for isn't defined below, here is how you can find these numbers:
 
@@ -28,10 +29,11 @@ If the competition you are looking for isn't defined below, here is how you can 
 That bot is using the "unofficial" FIFA json API (the one used for their mobile apps).
 
 It will post a message :
-  - when a match starts
-  - for every red/yellow card
-  - for the half time and end time
-  - and of course, for every goal
+
+- when a match starts
+- for every red/yellow card
+- for the half time and end time
+- and of course, for every goal
 
 ### Preview
 
@@ -44,22 +46,22 @@ Here is a preview of the United States vs Wales match (during the 2022 edition).
 
 ### Requirements
 
-  - PHP >= 5.5 (I guess?)
-  - You need to create a Slack Apps with an incoming webhooks:
-    - Jump at https://api.slack.com/messaging/webhooks (you have to login)
-    - Create a Slack app
-    - Enable Incoming Webhooks
-    - Create an Incoming Webhook (you'll then select the channel used for that bot)
-    - Grab the link like `https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX` and put it in `SLACK_URL`
+- PHP >= 5.5 (I guess?)
+- You need to create a Slack Apps with an incoming webhooks:
+  - Jump at https://api.slack.com/messaging/webhooks (you have to login)
+  - Create a Slack app
+  - Enable Incoming Webhooks
+  - Create an Incoming Webhook (you'll then select the channel used for that bot)
+  - Grab the link like `https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX` and put it in `SLACK_URL`
 
 ### Installation
 
-  - Clone this repo
-  - Set up a cron to run every minute:
+- Clone this repo
+- Set up a cron to run every minute:
 
-  ````
-  * * * * * cd /path/to/folder && php worldCupNotifier.php >> worldCupNotifier.log
-  ````
+```
+* * * * * cd /path/to/folder && php worldCupNotifier.php >> worldCupNotifier.log
+```
 
 ### Side notes
 

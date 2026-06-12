@@ -73,9 +73,9 @@ $language = [
  * FIFA API.
  */
 
-// 2018 World Cup
+// 2026 World Cup
 const ID_COMPETITION = 17;
-const ID_SEASON = 255711;
+const ID_SEASON = 285023;
 
 // Match Statuses
 const MATCH_STATUS_FINISHED = 0;
@@ -87,17 +87,26 @@ const MATCH_STATUS_PREMATCH = 12; // Maybe?
 const EVENT_GOAL = 0;
 const EVENT_YELLOW_CARD = 2;
 const EVENT_STRAIGHT_RED = 3;
-const EVENT_SECOND_YELLOW_CARD_RED = 4; // Maybe?
+const EVENT_SUBSTITUTION = 5;
 const EVENT_PERIOD_START = 7;
 const EVENT_PERIOD_END = 8;
+const EVENT_ATTEMPT = 12;
+const EVENT_OFFSIDE = 15;
+const EVENT_CORNER = 16;
+const EVENT_FOUL = 18;
 const EVENT_END_OF_GAME = 26;
 const EVENT_OWN_GOAL = 34;
 const EVENT_FREE_KICK_GOAL = 39;
 const EVENT_PENALTY_GOAL = 41;
 const EVENT_PENALTY_SAVED = 60;
 const EVENT_PENALTY_CROSSBAR = 46;
+const EVENT_SAVE = 57;
 const EVENT_PENALTY_MISSED = 65;
+const EVENT_VAR = 71;
 const EVENT_FOUL_PENALTY = 72;
+const EVENT_RESUME = 78;
+const EVENT_COIN_TOSS = 79;
+const EVENT_DELAY = 83;
 
 // Periods
 const PERIOD_1ST_HALF = 3;
